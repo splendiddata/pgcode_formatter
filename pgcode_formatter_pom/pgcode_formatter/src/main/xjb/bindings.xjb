@@ -1,0 +1,9 @@
+<jxb:bindings version="3.0" xmlns:jxb="https://jakarta.ee/xml/ns/jaxb" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+    <jxb:bindings schemaLocation="../xsd/pgcode_formatter-v1_0.xsd" node="//xsd:schema" jaxb.version="3.0">
+        <jxb:schemaBindings>
+            <jxb:package name="com.splendiddata.pgcode.formatter.configuration.xml.v1_0" />
+        </jxb:schemaBindings>
+    </jxb:bindings>
+
+</jxb:bindings>

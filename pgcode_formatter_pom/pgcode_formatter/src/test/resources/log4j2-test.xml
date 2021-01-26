@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Configuration>
+    <Appenders>
+        <File name="FILE" fileName="target/log4j.log" immediateFlush="true" append="true">
+            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout pattern="%c{1}: %m%n" />
+        </File>
+    </Appenders>
+    <Loggers>
+        <Logger name="com.splendiddata" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.RegressionTest" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.TestIndividualCase" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.structure.RenderMultiLines" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.structure.CaseStatementNode" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.structure.CreateFunctionNode" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.structure.FunctionArgumentNode" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.FormatConfiguration" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.structure.FromClause" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.structure.CaseClauseNode" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.internal.RenderMultiLines" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.structure.SrcNode" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.internal.Util" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.structure.CommaSeparatedList" level="info" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.structure.InParentheses" level="info" />
+        <Root level="debug">
+            <AppenderRef ref="FILE" />
+        </Root>
+    </Loggers>
+</Configuration>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Configuration>
+    <Appenders>
+        <File name="FILE" fileName="log4j.log" immediateFlush="true" append="false">
+            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout pattern="%m%n" />
+        </File>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="com.splendiddata" level="fatal"/>
+
+        <Logger name="com.splendiddata.pgcode.formatter.CodeFormatter" level="fatal" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.structure" level="fatal" />
+        <Logger name="com.splendiddata.pgcode.formatter.scanner.SourceScanner" level="fatal" />
+        <Logger name="com.splendiddata.pgcode.formatter.FormatConfiguration" level="fatal" />
+        <Logger name="com.splendiddata.pgcode.formatter.PlPgSqlCodeFormatterMain" level="fatal" />
+        <Root level="debug">
+            <AppenderRef ref="FILE" />
+        </Root>
+    </Loggers>
+</Configuration>

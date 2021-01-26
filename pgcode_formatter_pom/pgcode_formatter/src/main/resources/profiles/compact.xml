@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:configuration xmlns:ns2="http://www.splendiddata.com/plpgsql-code-formatter/1.0/" emptyLine="remove">
+    <lineWidth value="140" weight="10.0" />
+    <tabs tabWidth="4" tabsOrSpaces="tabs" />
+    <indent indentWidth="1" tabsOrSpaces="tabs" />
+    <queryConfig majorKeywordsOnSeparateLine="false">
+        <maxSingleLineQuery value="100" weight="5.0" />
+    </queryConfig>
+    <commaSeparatedListGrouping multilineOpeningParenBeforeArgument="false"
+        multilineClosingParenOnNewLine="false">
+        <maxSingleLineLength value="60" weight="5.0" />
+        <maxArgumentsPerGroup value="10" weight="5.0" />
+        <maxLengthOfGroup value="50" weight="10.0" />
+        <indent value="indented" weight="10.0" />
+        <commaBeforeOrAfter>before</commaBeforeOrAfter>
+    </commaSeparatedListGrouping>
+    <functionCallArgumentGrouping multilineOpeningParenBeforeArgument="false"
+        multilineClosingParenOnNewLine="false">
+        <indent value="underFirstArgument" weight="10.0" />
+    </functionCallArgumentGrouping>
+    <functionDefinitionArgumentGrouping defaultIndicator="alterToEqualsSign">
+        <argumentName alignment="subsequent" />
+        <dataType alignment="subsequent" />
+        <defaultValue alignment="subsequent" />
+    </functionDefinitionArgumentGrouping>
+    <fromItemGrouping comma="before" multilineOpeningParenBeforeArgument="false" multilineClosingParenOnNewLine="false">
+        <maxSingleLineLength value="100" weight="10.0"/>
+        <aliasAlignment alignment="subsequent" />
+    </fromItemGrouping>
+    <caseOperand elsePosition="elseUnderThen" endPosition="endUnderCase">
+        <maxSingleLineClause value="60" weight="5.0" />
+        <whenPosition value="whenUnderCase" weight="10.0" />
+        <thenPosition value="thenIndented" weight="10.0" />
+    </caseOperand>
+    <caseWhen elsePosition="elseUnderWhen" endPosition="endUnderCase">
+        <maxSingleLineClause value="60" weight="5.0" />
+        <whenPosition value="whenIndented" />
+        <thenPosition value="thenAfterWhenAligned" weight="10.0" />
+    </caseWhen>
+    <languagePlpgsql>
+        <declareSection>
+            <dataTypePosition alignment="subsequent" />
+        </declareSection>
+        <codeSection>
+            <ifStatement then="afterCondition" conditionIndent="underFirstArgument" />
+            <forStatement loop="afterCondition" />
+        </codeSection>
+    </languagePlpgsql>
+    <letterCaseKeywords>unchanged</letterCaseKeywords>
+    <letterCaseFunctions>unchanged</letterCaseFunctions>
+</ns2:configuration>

@@ -1,0 +1,642 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://www.splendiddata.com/plpgsql-code-formatter/1.0/"
+    targetNamespace="http://www.splendiddata.com/plpgsql-code-formatter/1.0/" version="1.0">
+    <complexType name="BaseFormatOption">
+        <annotation>
+            <documentation>
+                Base class for most configuration options
+            </documentation>
+        </annotation>
+        <attribute name="weight" type="float" use="optional">
+            <annotation>
+                <documentation>
+                    Defines the relatve weight of this option with competing options.
+                    The option with the highest weight wins.
+                </documentation>
+            </annotation>
+        </attribute>
+    </complexType>
+    <complexType name="BooleanOption">
+        <annotation>
+            <documentation>
+                A boolean option
+            </documentation>
+        </annotation>
+        <complexContent>
+            <extension base="tns:BaseFormatOption">
+                <attribute name="value" type="boolean" use="required">
+                    <annotation>
+                        <documentation>
+                            Can only be true or false
+                        </documentation>
+                    </annotation>
+                </attribute>
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="IntegerValueOption">
+        <complexContent>
+            <extension base="tns:BaseFormatOption">
+                <attribute name="value" type="int" use="required" />
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="IntegerRangeOption">
+        <complexContent>
+            <extension base="tns:BaseFormatOption">
+                <attribute name="rangeFrom" type="int" use="optional" />
+                <attribute name="rangeUntil" type="int" use="optional" />
+            </extension>
+        </complexContent>
+    </complexType>
+    <simpleType name="TabsOrSpacesType">
+        <restriction base="string">
+            <enumeration value="tabs" />
+            <enumeration value="spaces" />
+        </restriction>
+    </simpleType>
+    <complexType name="TabsType">
+        <annotation>
+            <documentation>
+                Tab as tab or tab as spaces
+            </documentation>
+        </annotation>
+        <attribute name="tabWidth" type="int">
+            <annotation>
+                <documentation>
+                    The width of a tab in characters
+                </documentation>
+            </annotation>
+        </attribute>
+        <attribute name="tabsOrSpaces" type="tns:TabsOrSpacesType">
+            <annotation>
+                <documentation>
+                    Use tab characters or use spaces
+                    Options:
+                    - tabs : Use tab characters
+                    - spaces : Use spaces instead of tab
+                    characters
+                </documentation>
+            </annotation>
+        </attribute>
+    </complexType>
+    <simpleType name="BeforeOrAfterType">
+        <restriction base="string">
+            <enumeration value="before" />
+            <enumeration value="after" />
+        </restriction>
+    </simpleType>
+    <simpleType name="CommaSeparatedListIndentOption">
+        <restriction base="string">
+            <enumeration value="underFirstArgument" />
+            <enumeration value="indented" />
+            <enumeration value="doubleIndented" />
+        </restriction>
+    </simpleType>
+    <simpleType name="FromItemIndentOption">
+        <restriction base="string">
+            <enumeration value="underFirstArgument" />
+            <enumeration value="indented" />
+            <enumeration value="doubleIndented" />
+        </restriction>
+    </simpleType>
+    <simpleType name="EmptyLineOption">
+        <restriction base="string">
+            <enumeration value="preserveAll" />
+            <enumeration value="preserveOne" />
+            <enumeration value="remove" />
+        </restriction>
+    </simpleType>
+    <complexType name="LogicalOperatorsIndentType">
+        <attribute name="indent" type="tns:CommaSeparatedListIndentOption" use="required" />
+    </complexType>
+    <complexType name="CommaSeparatedListIndentType">
+        <complexContent>
+            <extension base="tns:BaseFormatOption">
+                <attribute name="value" type="tns:CommaSeparatedListIndentOption" use="required" />
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="CommaSeparatedListGroupingType">
+        <all>
+            <element name="maxSingleLineLength" type="tns:IntegerValueOption" minOccurs="0" />
+            <element name="maxArgumentsPerGroup" type="tns:IntegerValueOption" minOccurs="0" />
+            <element name="maxLengthOfGroup" type="tns:IntegerValueOption" minOccurs="0" />
+            <element name="indent" type="tns:CommaSeparatedListIndentType" minOccurs="0" />
+            <element name="commaBeforeOrAfter" type="tns:BeforeOrAfterType" minOccurs="0" />
+        </all>
+        <attribute name="multilineOpeningParenBeforeArgument" type="boolean" use="optional" />
+        <attribute name="multilineClosingParenOnNewLine" type="boolean" use="optional" />
+    </complexType>
+    <simpleType name="RelativePositionTypeEnum">
+        <annotation>
+            <documentation>
+                Relative position type of an item horizontally to its
+                neighbouring items, and vertically to items of the same
+                kind. Think
+                for example of the data
+                type of a variable in the declare section of
+                a PLpgSQL function
+            </documentation>
+        </annotation>
+        <restriction base="string">
+            <enumeration value="subsequent">
+                <annotation>
+                    <documentation>
+                        The item will be placed immediately after its predecessor
+                    </documentation>
+                </annotation>
+            </enumeration>
+            <enumeration value="atHorizontalPosition">
+                <annotation>
+                    <documentation>
+                        The item will be placed at a defined horizontal position
+                    </documentation>
+                </annotation>
+            </enumeration>
+            <enumeration value="verticallyAligned">
+                <annotation>
+                    <documentation>
+                        The item will be placed vertically aligned with
+                        items of the same kind within a specified horizontal range
+                    </documentation>
+                </annotation>
+            </enumeration>
+        </restriction>
+    </simpleType>
+    <complexType name="RelativePositionType">
+        <annotation>
+            <documentation>
+                Determines where an item is to be placed, horizontally
+                between the other items, vertically maybe aligned with
+                items of the
+                same kind
+            </documentation>
+        </annotation>
+        <attribute name="alignment" type="tns:RelativePositionTypeEnum">
+            <annotation>
+                <documentation>
+                    How should the item be placed
+                </documentation>
+            </annotation>
+        </attribute>
+        <attribute name="minPosition" type="int" use="optional">
+            <annotation>
+                <documentation>
+                    "The" position for alignment="atHorizontalPosition",
+                    minimum position for alignment="verticalAlignment"
+                </documentation>
+            </annotation>
+        </attribute>
+        <attribute name="maxPosition" type="int" use="optional">
+            <annotation>
+                <documentation>Maximum position for alignment="verticalAlignment"
+                </documentation>
+            </annotation>
+        </attribute>
+    </complexType>
+    <simpleType name="DefaultIndicatorEnum">
+        <annotation>
+            <documentation>
+                In a function argument definition, a default value can
+                be indicated by either the word DEFAULT or a equals (=)
+                sign. This setting specifies if the indicator is to be replaced.
+            </documentation>
+        </annotation>
+        <restriction base="string">
+            <enumeration value="alterToDefault">
+                <annotation>
+                    <documentation>
+                        An equals sign will be altered to the word DEFAULT
+                    </documentation>
+                </annotation>
+            </enumeration>
+            <enumeration value="alterToEqualsSign">
+                <annotation>
+                    <documentation>
+                        The word DEFAULT will be replaced by an equals (=) sign
+                    </documentation>
+                </annotation>
+            </enumeration>
+            <enumeration value="asIs">
+                <annotation>
+                    <documentation>The default indicator will be left as is
+                    </documentation>
+                </annotation>
+            </enumeration>
+        </restriction>
+    </simpleType>
+    <complexType name="FunctionDefinitionArgumentGroupingType">
+        <annotation>
+            <documentation>
+                Defines the layout of function arguments in a CREATE FUNCTION statement
+            </documentation>
+        </annotation>
+        <all>
+            <element name="argumentGrouping" type="tns:CommaSeparatedListGroupingType" minOccurs="0">
+                <annotation>
+                    <documentation>
+                        How are the arguments grouped
+                    </documentation>
+                </annotation>
+            </element>
+            <element name="argumentName" type="tns:RelativePositionType" minOccurs="0" />
+            <element name="dataType" type="tns:RelativePositionType" minOccurs="0" />
+            <element name="defaultValue" type="tns:RelativePositionType" minOccurs="0" />
+        </all>
+        <attribute name="defaultIndicator" type="tns:DefaultIndicatorEnum" use="optional" />
+    </complexType>
+
+    <simpleType name="ColumnConstraintRelativePositionTypeEnum">
+        <annotation>
+            <documentation>
+                Relative position type of an item horizontally to its
+                neighbouring items, and vertically to items of the same
+                kind. Think for example of the data type of a variable in the declare section of
+                a PLpgSQL function
+            </documentation>
+        </annotation>
+        <restriction base="string">
+            <enumeration value="subsequent">
+                <annotation>
+                    <documentation>
+                        The item will be placed immediately after its
+                        predecessor
+                    </documentation>
+                </annotation>
+            </enumeration>
+            <enumeration value="atHorizontalPosition">
+                <annotation>
+                    <documentation>
+                        The item will be placed at a defined horizontal
+                        position
+                    </documentation>
+                </annotation>
+            </enumeration>
+            <enumeration value="verticallyAligned">
+                <annotation>
+                    <documentation>
+                        The item will be placed vertically aligned with
+                        items of the same kind within a specified horizontal
+                        range
+                    </documentation>
+                </annotation>
+            </enumeration>
+            <enumeration value="underDataType">
+                <annotation>
+                    <documentation>
+                        The item will be placed vertically aligned with the
+                        data type
+                    </documentation>
+                </annotation>
+            </enumeration>
+        </restriction>
+    </simpleType>
+    <complexType name="ColumnConstraintRelativePositionType">
+        <annotation>
+            <documentation>
+                Determines where an item is to be placed, horizontally
+                between the other items, vertically maybe aligned with
+                items of the
+                same kind
+            </documentation>
+        </annotation>
+        <attribute name="alignment" type="tns:ColumnConstraintRelativePositionTypeEnum">
+            <annotation>
+                <documentation>
+                    How should the item be placed
+                </documentation>
+            </annotation>
+        </attribute>
+        <attribute name="minPosition" type="int" use="optional">
+            <annotation>
+                <documentation>
+                    "The" position for alignment="atHorizontalPosition",
+                    minimum position for alignment="verticalAlignment"
+                </documentation>
+            </annotation>
+        </attribute>
+        <attribute name="maxPosition" type="int" use="optional">
+            <annotation>
+                <documentation>
+                    Maximum position for alignment="verticalAlignment"
+                </documentation>
+            </annotation>
+        </attribute>
+    </complexType>
+    <complexType name="TableDefinitionType">
+        <annotation>
+            <documentation>Defines the layout of a CREATE TABLE statement
+            </documentation>
+        </annotation>
+        <all>
+            <element name="argumentGrouping" type="tns:CommaSeparatedListGroupingType" minOccurs="0">
+                <annotation>
+                    <documentation>
+                        How are the columns and table constraints grouped
+                    </documentation>
+                </annotation>
+            </element>
+            <element name="dataType" type="tns:RelativePositionType" minOccurs="0" />
+            <element name="columnContraint" type="tns:ColumnConstraintRelativePositionType" minOccurs="0" />
+        </all>
+    </complexType>
+    <complexType name="FromItemIndentType">
+        <complexContent>
+            <extension base="tns:BaseFormatOption">
+                <attribute name="value" type="tns:FromItemIndentOption" use="required" />
+            </extension>
+        </complexContent>
+    </complexType>
+    <complexType name="FromItemGroupingType">
+        <all>
+            <element name="maxSingleLineLength" type="tns:IntegerValueOption" minOccurs="0" />
+            <element name="aliasAlignment" type="tns:RelativePositionType" minOccurs="0" />
+        </all>
+        <attribute name="comma" type="tns:BeforeOrAfterType" use="optional" />
+        <attribute name="multilineOpeningParenBeforeArgument" type="boolean" use="optional" />
+        <attribute name="multilineClosingParenOnNewLine" type="boolean" use="optional" />
+    </complexType>
+    <complexType name="QueryConfigType">
+        <all>
+            <element name="maxSingleLineQuery" type="tns:IntegerValueOption" minOccurs="0">
+                <annotation>
+                    <documentation>
+                        The maximum length of a query that would fit in a single line. If a single query
+                        is longer than this, it
+                        will be split up over several lines.
+                    </documentation>
+                </annotation>
+            </element>
+        </all>
+        <attribute name="majorKeywordsOnSeparateLine" type="boolean" use="optional">
+            <annotation>
+                <documentation>
+                    Are major keywords (select, from, where, ...) placed on a line of
+                    their own (true) or are they to be kept in
+                    line with the target list, the
+                    first table in the from clause, the first where condition etc. (false)
+                </documentation>
+            </annotation>
+        </attribute>
+        <attribute name="indent" type="boolean" use="optional">
+            <annotation>
+                <documentation>
+                    Is the content of a query indented compared to the start of the
+                    query (true) or not (fasle).
+                </documentation>
+            </annotation>
+        </attribute>
+    </complexType>
+    <simpleType name="CaseWhenPositionOption">
+        <restriction base="string">
+            <enumeration value="whenAfterCase" />
+            <enumeration value="whenUnderCase" />
+            <enumeration value="whenIndented" />
+        </restriction>
+    </simpleType>
+    <complexType name="CaseWhenPositionType">
+        <complexContent>
+            <extension base="tns:BaseFormatOption">
+                <attribute name="value" type="tns:CaseWhenPositionOption" />
+            </extension>
+        </complexContent>
+    </complexType>
+    <simpleType name="CaseThenPositionOption">
+        <restriction base="string">
+            <enumeration value="thenAfterWhenDirectly" />
+            <enumeration value="thenAfterWhenAligned" />
+            <enumeration value="thenUnderWhen" />
+            <enumeration value="thenIndented" />
+        </restriction>
+    </simpleType>
+    <complexType name="CaseThenPositionType">
+        <complexContent>
+            <extension base="tns:BaseFormatOption">
+                <attribute name="value" type="tns:CaseThenPositionOption" />
+            </extension>
+        </complexContent>
+    </complexType>
+    <simpleType name="CaseElsePositionOption">
+        <restriction base="string">
+            <enumeration value="elseUnderWhen" />
+            <enumeration value="elseUnderThen" />
+        </restriction>
+    </simpleType>
+    <simpleType name="CaseEndPositionOption">
+        <restriction base="string">
+            <enumeration value="endUnderCase" />
+            <enumeration value="endUnderWhen" />
+            <enumeration value="endAtSameLine" />
+        </restriction>
+    </simpleType>
+    <complexType name="CaseType">
+        <all>
+            <element name="maxSingleLineClause" type="tns:IntegerValueOption" minOccurs="0" />
+            <element name="whenPosition" type="tns:CaseWhenPositionType" minOccurs="0" />
+            <element name="thenPosition" type="tns:CaseThenPositionType" minOccurs="0" />
+        </all>
+        <attribute name="elsePosition" type="tns:CaseElsePositionOption" use="optional" />
+        <attribute name="endPosition" type="tns:CaseEndPositionOption" use="optional" />
+    </complexType>
+    <simpleType name="LetterCaseType">
+        <restriction base="string">
+            <enumeration value="unchanged" />
+            <enumeration value="uppercase" />
+            <enumeration value="lowercase" />
+        </restriction>
+    </simpleType>
+    <complexType name="IndentType">
+        <attribute name="indentWidth" type="int">
+            <annotation>
+                <documentation>
+                    The standard indent width in character positions (number of space characters).
+                    If tabs are used, then still
+                    this width must be specified as number of character positions.
+                </documentation>
+            </annotation>
+        </attribute>
+        <attribute name="tabsOrSpaces" type="tns:TabsOrSpacesType" default="spaces">
+            <annotation>
+                <documentation>
+                    Are tab characters or spaces used for the indent
+                </documentation>
+            </annotation>
+        </attribute>
+        <attribute name="indentInnerFunction" type="boolean" use="optional" />
+    </complexType>
+    <simpleType name="PlpgsqlDeclareConstantPositionType">
+        <restriction base="string">
+            <enumeration value="subsequent" />
+            <enumeration value="alignedBeforeDataType" />
+            <enumeration value="alignedWithDataType" />
+        </restriction>
+    </simpleType>
+    <complexType name="PlpgsqlDeclareDataTypePosition">
+        <attribute name="alignment" type="tns:RelativePositionTypeEnum" />
+        <attribute name="minPosition" type="int" use="optional" />
+        <attribute name="maxPosition" type="int" use="optional" />
+        <attribute name="constantPosition" type="tns:PlpgsqlDeclareConstantPositionType" use="optional" />
+    </complexType>
+    <complexType name="PlpgsqlDeclareSectionType">
+        <all>
+            <element name="dataTypePosition" type="tns:PlpgsqlDeclareDataTypePosition" minOccurs="1" />
+        </all>
+    </complexType>
+    <simpleType name="PlpgsqlConditionEndPositionType">
+        <restriction base="string">
+            <enumeration value="afterCondition" />
+            <enumeration value="onNewLine" />
+            <enumeration value="singleLineAfterMultiLineUnder" />
+        </restriction>
+    </simpleType>
+    <complexType name="PlpgsqlIfStatementType">
+        <attribute name="then" type="tns:PlpgsqlConditionEndPositionType" />
+        <attribute name="conditionIndent" type="tns:CommaSeparatedListIndentOption" />
+    </complexType>
+    <complexType name="PlpgsqlForStatementType">
+        <attribute name="loop" type="tns:PlpgsqlConditionEndPositionType" />
+    </complexType>
+    <complexType name="PlpgsqlCodeSectionType">
+        <all>
+            <element name="ifStatement" type="tns:PlpgsqlIfStatementType" minOccurs="1" />
+            <element name="forStatement" type="tns:PlpgsqlForStatementType" minOccurs="1" />
+        </all>
+    </complexType>
+    <complexType name="PlpgsqlType">
+        <all>
+            <element name="declareSection" type="tns:PlpgsqlDeclareSectionType" minOccurs="1" />
+            <element name="codeSection" type="tns:PlpgsqlCodeSectionType" minOccurs="1" />
+        </all>
+    </complexType>
+    <element name="configuration">
+        <annotation>
+            <documentation>
+                Defines how to format
+            </documentation>
+        </annotation>
+        <complexType>
+            <all>
+                <element name="lineWidth" type="tns:IntegerValueOption" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Maximum line width in characters.
+                            For tab characters, the amount of space characters that they would
+                            represent are counted.
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="tabs" type="tns:TabsType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Are multiple space characters replaced by tab characters
+                        </documentation>
+                    </annotation>
+                </element>
+                <!-- indent is the number of indents based on indentType: tabs or spaces. In the source code spaces are used, in the last phase 
+                    of code formatting, the spaces are converted to tabs when indentType = tabs. When this attribute is not provided, the tabWith from TabsType will 
+                    be used. -->
+                <element name="indent" type="tns:IndentType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Defines the indent specifications
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="queryConfig" type="tns:QueryConfigType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Defines what a query should look like
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="commaSeparatedListGrouping" type="tns:CommaSeparatedListGroupingType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Common settings for comma separated lists
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="functionCallArgumentGrouping" type="tns:CommaSeparatedListGroupingType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Defines how multiple arguments in a function call should be positioned
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="functionDefinitionArgumentGrouping" type="tns:FunctionDefinitionArgumentGroupingType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Defines how arguments in a function definition should be arranged
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="tableDefinition" type="tns:TableDefinitionType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Defnes the layout of a create table statement
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="fromItemGrouping" type="tns:FromItemGroupingType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Defines the layout of a from clause of a select statement
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="targetListGrouping" type="tns:CommaSeparatedListGroupingType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Defines the layout of the target list of a select statement
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="logicalOperatorsIndent" type="tns:LogicalOperatorsIndentType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Defines the layout of the logical operators
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="caseOperand" type="tns:CaseType" minOccurs="0" />
+                <element name="caseWhen" type="tns:CaseType" minOccurs="0" />
+                <element name="letterCaseKeywords" type="tns:LetterCaseType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Determines if keywords should be turned into upper case, lower case or if they are to remain as they
+                            are
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="letterCaseFunctions" type="tns:LetterCaseType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Determines if system functions should be turned into upper case, lower case or if they are to remain
+                            as they are
+                        </documentation>
+                    </annotation>
+                </element>
+                <element name="languagePlpgsql" type="tns:PlpgsqlType" minOccurs="0">
+                    <annotation>
+                        <documentation>
+                            Define the settings for plpgsql program code
+                        </documentation>
+                    </annotation>
+                </element>
+            </all>
+            <attribute name="emptyLine" type="tns:EmptyLineOption" use="optional">
+                <annotation>
+                    <documentation>
+                        Indicates what to do with empty lines,
+                        Options:
+                        - preserveAll : All empty lines are left as they are
+                        -
+                        preserveOne : Contiguous empty lines are reduced to a single empty line
+                        - remove : All empty lines will be removed
+                    </documentation>
+                </annotation>
+            </attribute>
+        </complexType>
+    </element>
+</schema>

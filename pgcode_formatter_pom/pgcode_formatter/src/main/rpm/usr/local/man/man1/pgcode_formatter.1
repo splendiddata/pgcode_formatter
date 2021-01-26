@@ -1,0 +1,26 @@
+.TH pgcode_formatter 1
+.SH NAME
+Splendid Data pgcode_formatter \- formats SQL and and PL/pgSQL code
+.SH SYNOPSIS
+.B pgcode_formatter
+[\-?]  [\-i <\fIsource\fR>] [\-o \fIoutput\fR] [\-c \fIconfig\fR] [\-S]
+.SH DESCRIPTION
+The Splendid Data pgcode_formatter allows you to beautify your SQL and PL/pgSQL code according to a provided profile name or a configuration xml file.
+.SH OPTIONS
+.TP
+.BR \-? ", " \-\-help
+Help on the commandline options
+.TP
+.BR \-i ", " \-\-input " " \fIsource\fR
+The input (plpg)sql source file.
+.TP
+.BR \-o ", " \-\-output " " \fIoutput\fR
+The formatted output (plpg)sql source file. If not provided, stdout will be used
+.TP
+.BR \-c ", " \-\-config " " \fIconfig\fR
+config xml file that describes how to format the sources
+.TP
+.BR \-S ", " \-\-store\-config
+The provided configuration file or profile, if any, will be stored
+in user preferences. This will be used in future calls
+when neither a profile name nor a configuration file is provided
