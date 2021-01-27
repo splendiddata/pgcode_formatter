@@ -1,5 +1,5 @@
 # pgcode_formatter
-A configurable code formatter for PostgeSQL SQL and PLPGSQL code
+A configurable code formatter for PostgreSQL SQL and PLPGSQL code
 
 The usage guide can be found under https://github.com/splendiddata/pgcode_formatter/blob/main/pgcode_formatter_pom/doc/pgcode-formatter_manual.pdf
 
