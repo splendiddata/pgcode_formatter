@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.splendiddata</groupId>
         <artifactId>pgcode_formatter_pom</artifactId>
-        <version>0.1-SNAPSHOT</version>
+        <version>0.2-SNAPSHOT</version>
     </parent>
     <groupId>commons-cli.module</groupId>
     <artifactId>commons-cli</artifactId>
