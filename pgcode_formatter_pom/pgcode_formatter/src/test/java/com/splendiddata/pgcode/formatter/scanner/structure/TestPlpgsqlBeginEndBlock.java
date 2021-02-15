@@ -28,7 +28,6 @@ import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.Configuration;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
 import com.splendiddata.pgcode.formatter.internal.RenderResult;
-import com.splendiddata.pgcode.formatter.scanner.structure.PlpgsqlBeginEndBlock;
 
 /**
  * Tests a PLpgSQl begin ... end block

@@ -76,7 +76,7 @@ public class TestPostgresInputReader {
      */
     @ParameterizedTest
     @MethodSource("getOperatorTestCases")
-    public void testOperators(OperatorTestCase testCase) throws IOException {
+    public void testOperators(@SuppressWarnings("exports") OperatorTestCase testCase) throws IOException {
         List<ScanResult> foundOperators = new ArrayList<>();
         try (PostgresInputReader reader = new PostgresInputReader(new StringReader(testCase.getInput()))) {
             for (SrcNode node = PostgresInputReader

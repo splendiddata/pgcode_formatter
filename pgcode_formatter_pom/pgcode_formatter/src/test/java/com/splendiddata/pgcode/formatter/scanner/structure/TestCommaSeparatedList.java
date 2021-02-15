@@ -36,7 +36,6 @@ import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
 import com.splendiddata.pgcode.formatter.internal.Util;
 import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
-import com.splendiddata.pgcode.formatter.scanner.structure.CommaSeparatedList;
 
 /**
  * Some JUnit tests for a CommaSeparatedList

@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import com.splendiddata.pgcode.formatter.CodeFormatter;
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.Configuration;
-import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.TabsOrSpacesType;
 
 /**
  * JUnit tests for line comments.

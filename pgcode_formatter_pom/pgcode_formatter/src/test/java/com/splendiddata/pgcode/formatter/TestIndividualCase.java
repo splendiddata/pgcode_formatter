@@ -31,9 +31,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.splendiddata.pgcode.formatter.CodeFormatter;
-import com.splendiddata.pgcode.formatter.FormatConfiguration;
-
 /**
  * Walks the src/test/resources/regression/source and src/test/resources/regression/config directories and creates a
  * test case for every combination.

@@ -30,10 +30,6 @@ import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
 import com.splendiddata.pgcode.formatter.internal.RenderResult;
 import com.splendiddata.pgcode.formatter.scanner.ScanResult;
 import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
-import com.splendiddata.pgcode.formatter.scanner.structure.DoubleQuotedIdentifierNode;
-import com.splendiddata.pgcode.formatter.scanner.structure.IdentifierNode;
-import com.splendiddata.pgcode.formatter.scanner.structure.QualifiedIdentifierNode;
-import com.splendiddata.pgcode.formatter.scanner.structure.SrcNode;
 
 /**
  * Test cases for the interpretation of identifiers

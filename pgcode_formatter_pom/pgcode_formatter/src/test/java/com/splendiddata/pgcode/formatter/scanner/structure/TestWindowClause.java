@@ -27,7 +27,6 @@ import com.splendiddata.pgcode.formatter.FormatConfiguration;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.Configuration;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
-import com.splendiddata.pgcode.formatter.scanner.structure.WindowClause;
 
 /**
  * Some test cases for the window clause of a select statement

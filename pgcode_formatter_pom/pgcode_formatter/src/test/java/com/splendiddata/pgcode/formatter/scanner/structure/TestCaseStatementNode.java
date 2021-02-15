@@ -31,7 +31,6 @@ import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CaseWhenPosition
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.Configuration;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
-import com.splendiddata.pgcode.formatter.scanner.structure.CaseStatementNode;
 
 /**
  * JUnit tests for {@link CaseStatementNode}

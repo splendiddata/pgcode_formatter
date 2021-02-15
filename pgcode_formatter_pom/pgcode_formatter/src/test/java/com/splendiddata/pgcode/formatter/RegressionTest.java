@@ -43,8 +43,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.splendiddata.pgcode.formatter.CodeFormatter;
-import com.splendiddata.pgcode.formatter.FormatConfiguration;
 import com.splendiddata.sqlparser.SqlParser;
 import com.splendiddata.sqlparser.SqlParserErrorData;
 import com.splendiddata.sqlparser.SqlParserErrorReporter;

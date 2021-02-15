@@ -30,7 +30,6 @@ import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.ObjectFactory;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
 import com.splendiddata.pgcode.formatter.internal.RenderResult;
-import com.splendiddata.pgcode.formatter.scanner.structure.IntoClauseNode;
 
 /**
  * Tests the IntoClauseNode

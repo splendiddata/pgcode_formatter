@@ -22,9 +22,16 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,16 +44,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.splendiddata.pgcode.formatter.CodeFormatter;
-import com.splendiddata.pgcode.formatter.FormatConfiguration;
-import com.splendiddata.pgcode.formatter.SplitData;
-import com.splendiddata.pgcode.formatter.SplitDataType;
 import com.splendiddata.pgcode.formatter.internal.Util;
 import com.splendiddata.sqlparser.SqlParser;
 import com.splendiddata.sqlparser.SqlParserErrorData;
 import com.splendiddata.sqlparser.SqlParserErrorReporter;
 import com.splendiddata.sqlparser.enums.NodeTag;
-import com.splendiddata.sqlparser.structure.*;
+import com.splendiddata.sqlparser.structure.CreateFunctionStmt;
+import com.splendiddata.sqlparser.structure.DefElem;
+import com.splendiddata.sqlparser.structure.DoStmt;
+import com.splendiddata.sqlparser.structure.Node;
+import com.splendiddata.sqlparser.structure.Value;
 
 /**
  * Walks the src/test/resources/regression/source and src/test/resources/regression/config directories and creates a
