@@ -15,7 +15,6 @@ FROM (
 			 FROM event
 			 WHERE user_id = e1.user_id
 				   AND data ->> 'type' = 'enter_credit_card'
-				   AND time BETWEEN view_homepage_time AND
-				   (view_homepage_time + 1000 * 60 * 60 * 24 * 14)
+				   AND time BETWEEN view_homepage_time AND (view_homepage_time + 1000 * 60 * 60 * 24 * 14)
 			 ORDER BY time
 			 LIMIT 1 ) e2 ON TRUE;

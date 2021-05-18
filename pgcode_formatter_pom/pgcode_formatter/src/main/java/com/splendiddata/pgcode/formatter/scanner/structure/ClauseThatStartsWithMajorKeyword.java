@@ -80,7 +80,7 @@ public abstract class ClauseThatStartsWithMajorKeyword extends SrcNode implement
 
         if (!config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()) {
             RenderMultiLines result = new RenderMultiLines(this, formatContext);
-            for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
+            for (ScanResult node = getStartScanResult(); node != null && result.getHeight() <= 1; node = node.getNext()) {
                 result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
             }
             if (result.getHeight() == 1 && result.getPosition() <= availableWidth) {
@@ -120,10 +120,10 @@ public abstract class ClauseThatStartsWithMajorKeyword extends SrcNode implement
         int indent = 0;
         switch (config.getLogicalOperatorsIndent().getIndent()) {
         case DOUBLE_INDENTED:
-            indent = 2 * FormatContext.indent(true).length();
+            indent = 2 * standardIndent;
             break;
         case INDENTED:
-            indent = FormatContext.indent(true).length();
+            indent = standardIndent;
             break;
         case UNDER_FIRST_ARGUMENT:
         default:
@@ -131,11 +131,13 @@ public abstract class ClauseThatStartsWithMajorKeyword extends SrcNode implement
             break;
         }
         result.setIndent(indent);
+        contentContext = new FormatContext(config, formatContext)
+                .setAvailableWidth(availableWidth - indent);
         boolean passedBetweenKeyword = false;
         if (node != null) {
             for (node = node.getNext(); node != null; node = node.getNext()) {
                 RenderResult itemResult = node.beautify(contentContext, result, config);
-                if (result.getPosition() > standardIndent
+                if (result.getPosition() > indent
                         && result.getPosition() + itemResult.getWidth() > availableWidth) {
                     result.addLine();
                 }

@@ -61,8 +61,10 @@ public class WithStatement extends SrcNode {
         priorNode = currentNode.locatePriorToNextInterpretable();
         currentNode = PostgresInputReader.interpretStatementStart(priorNode.getNext());
         priorNode.setNext(currentNode);
-        setNext(currentNode.getNext());
-        currentNode.setNext(null);
+        if (currentNode != null) {
+            setNext(currentNode.getNext());
+            currentNode.setNext(null);
+        }
     }
 
     /**
@@ -75,7 +77,7 @@ public class WithStatement extends SrcNode {
         RenderMultiLines result = new RenderMultiLines(this, formatContext).setIndent(0);
         ScanResult node;
         FormatContext contentContext = new FormatContext(config, formatContext);
-        for (node = getStartScanResult(); node != null; node = node.getNext()) {
+        for (node = getStartScanResult(); node != null && result.getHeight() <= 1; node = node.getNext()) {
             result.addRenderResult(
                     node.beautify(contentContext.setAvailableWidth(availableWidth - result.getPosition()), result, config),
                     formatContext);

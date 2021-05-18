@@ -324,7 +324,7 @@ public class SelectStatement extends SrcNode implements WantsNewlineBefore {
                 maxWidth = queryWidthSetting.getValue();
             }
             formatContext.setAvailableWidth(maxWidth);
-            for (ScanResult current = getStartScanResult(); current != null; current = current.getNext()) {
+            for (ScanResult current = getStartScanResult(); current != null && result.getHeight() <= 1; current = current.getNext()) {
                 if (current == targetList || current == distinctList) {
                     result.addRenderResult(
                             current.beautify(targetListContext.setAvailableWidth(availableWidth - result.getPosition()),

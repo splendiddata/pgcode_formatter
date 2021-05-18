@@ -10,9 +10,8 @@ FROM pg_namespace nv
  , pg_depend    dt
  , pg_class     t
  , pg_namespace nt
-WHERE ( ( ( ( ( ( ( ( ( ( ( ( ( (nv.oid = v.relnamespace) AND
-                                (v.relkind = 'v'::"char")
-                              ) AND (v.oid = dv.refobjid)
+WHERE ( ( ( ( ( ( ( ( ( ( ( ( ((nv.oid = v.relnamespace) AND (v.relkind = 'v'::"char")) AND
+                              (v.oid = dv.refobjid)
                             ) AND (dv.refclassid = ('pg_class'::regclass)::oid)
                           ) AND (dv.classid = ('pg_rewrite'::regclass)::oid)
                         ) AND (dv.deptype = 'i'::"char")
