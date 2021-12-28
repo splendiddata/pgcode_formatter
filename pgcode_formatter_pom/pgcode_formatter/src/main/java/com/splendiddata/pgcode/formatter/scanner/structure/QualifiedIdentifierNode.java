@@ -1,23 +1,20 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
@@ -62,9 +59,9 @@ public class QualifiedIdentifierNode extends IdentifierNode {
             }
             if (currentNode.is(ScanResultType.IDENTIFIER)) {
                 if (currentNode instanceof IdentifierNode) {
-                    lastAdded = currentNode;
+                    lastAdded = ((IdentifierNode) currentNode).setNotKeyword(true);
                 } else {
-                    lastAdded = new IdentifierNode(currentNode);
+                    lastAdded = new IdentifierNode(currentNode).setNotKeyword(true);
                 }
                 priorNode.setNext(lastAdded);
             } else if (currentNode.is(ScanResultType.DOUBLE_QUOTED_IDENTIFIER)) {
@@ -107,15 +104,15 @@ public class QualifiedIdentifierNode extends IdentifierNode {
     }
 
     /**
-     * Returns the constituents of a qualified name including the period and non interpretable tokens like comment and spaces.
-     *
+     * Returns the constituents of a qualified name including the period and non interpretable tokens like comment and
+     * spaces.
      *
      * @return List Constituents of a qualified name
      */
     public List<ScanResult> getAllNameParts() {
-        LinkedList<ScanResult> nameParts = new LinkedList();
+        ArrayList<ScanResult> nameParts = new ArrayList<>();
         for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
-                nameParts.add(node);
+            nameParts.add(node);
         }
         return nameParts;
     }
@@ -136,7 +133,8 @@ public class QualifiedIdentifierNode extends IdentifierNode {
      * @see IdentifierNode#beautify(FormatContext, RenderMultiLines, FormatConfiguration)
      */
     @Override
-    public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult, FormatConfiguration config) {
+    public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
+            FormatConfiguration config) {
         RenderMultiLines result = new RenderMultiLines(this, formatContext);
         for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
             switch (node.getType()) {

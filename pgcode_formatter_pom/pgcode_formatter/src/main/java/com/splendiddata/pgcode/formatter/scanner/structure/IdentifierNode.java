@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -107,11 +104,13 @@ public class IdentifierNode extends SrcNode implements Serializable, Comparable<
      * <p>
      * This method is supposed to be invoked on identifiers that represent for example a column name.
      *
+     * @return IdentifierNode this
      * @param notKeyword
      *            true if this identifier should not be handled as keyword
      */
-    public void setNotKeyword(boolean notKeyword) {
+    public IdentifierNode setNotKeyword(boolean notKeyword) {
         this.notKeyword = notKeyword;
+        return this;
     }
 
     /**
@@ -163,7 +162,8 @@ public class IdentifierNode extends SrcNode implements Serializable, Comparable<
      * @see ScanResult#beautify(FormatContext, RenderMultiLines, FormatConfiguration)
      */
     @Override
-    public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult, FormatConfiguration config) {
+    public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
+            FormatConfiguration config) {
         return new RenderItem(pgBuiltInsToLetterCase(config), this, RenderItemType.IDENTIFIER);
     }
 
@@ -189,8 +189,7 @@ public class IdentifierNode extends SrcNode implements Serializable, Comparable<
             default:
                 return identifier;
             }
-        }
-        else if (Dicts.pgFunctions.contains(identifier.toUpperCase())) {
+        } else if (Dicts.pgFunctions.contains(identifier.toUpperCase())) {
             switch (config.getLetterCaseFunctions()) {
             case LOWERCASE:
                 return identifier.toLowerCase();
@@ -199,8 +198,7 @@ public class IdentifierNode extends SrcNode implements Serializable, Comparable<
             default:
                 return identifier;
             }
-        }
-        else {
+        } else {
             return identifier;
         }
     }
