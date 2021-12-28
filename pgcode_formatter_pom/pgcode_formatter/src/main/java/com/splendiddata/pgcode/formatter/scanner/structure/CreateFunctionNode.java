@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -198,7 +195,9 @@ public class CreateFunctionNode extends SrcNode {
      */
     public String getLanguage() {
         String result = null;
-        if (language != null) {
+        if (language instanceof LiteralNode) {
+            result = ((LiteralNode) language).getLiteral();
+        } else if (language != null) {
             result = language.toString();
         }
         return result;
@@ -256,16 +255,16 @@ public class CreateFunctionNode extends SrcNode {
                              */
                             List<ListElement> code = ((CommaSeparatedList) current).getElements();
                             if (code.size() == 1) {
-//                                /*
-//                                 * List elements that are created with BeforeOrAfterType.BEFORE are indented with two
-//                                 * spaces to allow room for the comma and a space. But we don't want that here, so let's
-//                                 * tell it the comma (there will not be any) is supposed to occur AFTER it
-//                                 */
-//                                CommaSeparatedListGroupingType csListgrouping = new ObjectFactory()
-//                                        .createCommaSeparatedListGroupingType();
-//                                context.getCommaSeparatedListGrouping().copyTo(csListgrouping);
-//                                csListgrouping.setCommaBeforeOrAfter(BeforeOrAfterType.AFTER);
-//                                context.setCommaSeparatedListGrouping(csListgrouping);
+                                //                                /*
+                                //                                 * List elements that are created with BeforeOrAfterType.BEFORE are indented with two
+                                //                                 * spaces to allow room for the comma and a space. But we don't want that here, so let's
+                                //                                 * tell it the comma (there will not be any) is supposed to occur AFTER it
+                                //                                 */
+                                //                                CommaSeparatedListGroupingType csListgrouping = new ObjectFactory()
+                                //                                        .createCommaSeparatedListGroupingType();
+                                //                                context.getCommaSeparatedListGrouping().copyTo(csListgrouping);
+                                //                                csListgrouping.setCommaBeforeOrAfter(BeforeOrAfterType.AFTER);
+                                //                                context.setCommaSeparatedListGrouping(csListgrouping);
 
                                 result.addRenderResult(code.get(0).beautify(context, result, config), formatContext);
                             } else {

@@ -86,7 +86,7 @@ public class TestIndividualCase {
         Path outputFile = Paths.get(basePath.toString(), "target/test/test_output.sql");
 
                 String input = new String(Files.readAllBytes(
-                        Paths.get(basePath.toString(), "src/test/resources/regression/source/regtest/dollar_inside_quoted_text.sql")));
+                        Paths.get(basePath.toString(), "src/test/resources/regression/source/regtest/a_trigger.sql")));
 
 //        String input = "CREATE OR REPLACE FUNCTION plpgsql_inline_handler_test(internal)\n" + 
 //                " RETURNS void\n" + 
@@ -105,25 +105,15 @@ public class TestIndividualCase {
         }
         Assertions.assertNotNull(output, "The output is supposed to not be null");
         Assertions.assertEquals(
-                "CREATE FUNCTION sales_func\n"
-                + "        ( employee_id int\n"
-                + "        , vehicle_id  int\n"
-                + "        )\n"
-                + "RETURNS sales\n"
+                "CREATE OR REPLACE FUNCTION foo ()\n"
+                + "RETURNS TRIGGER\n"
                 + "AS $$\n"
-                + "DECLARE\n"
-                + "    car_model   text;\n"
-                + "    car_price   int;\n"
-                + "    sales_bonus int;\n"
-                + "    bonus       int;\n"
                 + "BEGIN\n"
-                + "    EXECUTE 'SELECT model, sales_bonus, price FROM cars WHERE car_id = $1' INTO car_model, sales_bonus, car_price USING vehicle_id;\n"
-                + "    INSERT INTO sales (staff_id, car_id, staff_bonus, sales_price)\n"
-                + "        VALUES (employee_id, vehicle_id, bonus, car_price);\n"
-                + "    RETURN QUERY SELECT * FROM sales ORDER BY created_at;\n"
+                + "    CREATE TEMPORARY TABLE tb (id    integer);\n"
+                + "    SELECT * FROM nothing;\n"
                 + "END;\n"
                 + "$$\n"
-                + "LANGUAGE plpgsql;\n"
+                + "LANGUAGE 'plpgsql';\n"
                 + "", output);
     }
 }
