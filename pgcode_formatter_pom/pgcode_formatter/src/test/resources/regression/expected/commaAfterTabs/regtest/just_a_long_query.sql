@@ -19,9 +19,9 @@ SELECT
 		INNER JOIN transactions ON (mvt_temps.id_transaction = transactions.id_transaction)
 		INNER JOIN products ON (code.id_product = products.id_product)
 	WHERE
-		variables.NAME = 'acktuel_adresse'
-		AND variables1.NAME = 'variable_name'
-		AND variables2.NAME = 'variable_name'
+		variables.name = 'acktuel_adresse'
+		AND variables1.name = 'variable_name'
+		AND variables2.name = 'variable_name'
 		AND transactions.code = 'XXXXXXXXXXXXX'
 		AND mvt_temps.statutok = TRUE
 		AND products.produktcode = '123456789'

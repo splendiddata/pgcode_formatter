@@ -35,7 +35,7 @@ SELECT
 	t;
 
 SELECT
-	f.title, f.did, d.NAME, f.date_prod, f.kind
+	f.title, f.did, d.name, f.date_prod, f.kind
 	FROM
 	distributors d, films f
 	WHERE
@@ -65,11 +65,11 @@ SELECT
 		t;
 
 SELECT
-	m.NAME AS mname, pname
+	m.name AS mname, pname
 	FROM
 	manufacturers m, LATERAL get_product_names(m.id) pname;
 
 SELECT
-	m.NAME AS mname, pname
+	m.name AS mname, pname
 	FROM
 	manufacturers m LEFT JOIN LATERAL get_product_names(m.id) pname ON TRUE;

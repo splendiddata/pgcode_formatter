@@ -1,14 +1,14 @@
-create or replace function double_backslash(text varchar)
-returns varchar
-language plpgsql
-security definer
-as $function$
+CREATE OR REPLACE FUNCTION double_backslash(text VARCHAR)
+RETURNS VARCHAR
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
 DECLARE
 	varchar a;
 BEGIN
 	a := regexp_replace(
-			text, '^\S+ function (.*) line [0-9]+ at .*'
-			, E'\\1' );
-	RETURN a::varchar;
+			TEXT, '^\S+ function (.*) line [0-9]+ at .*',
+			E'\\1' );
+	RETURN a::VARCHAR;
 END;
 $function$

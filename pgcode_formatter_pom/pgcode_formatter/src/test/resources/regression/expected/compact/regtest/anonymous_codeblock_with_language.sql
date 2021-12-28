@@ -1,9 +1,9 @@
 DO $$
 DECLARE
-	r varchar;
+	r VARCHAR;
 BEGIN
-	select a into r from coord;
-	raise notice 'Value: %', r;
+	SELECT a INTO r FROM coord;
+	RAISE NOTICE 'Value: %', r;
 END
 $$
 LANGUAGE

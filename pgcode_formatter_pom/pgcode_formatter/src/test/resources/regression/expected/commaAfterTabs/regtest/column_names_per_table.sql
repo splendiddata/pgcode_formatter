@@ -1,8 +1,8 @@
 SELECT
-	group_concat(k.COLUMN_NAME ORDER BY k.ordinal_position) AS column_names,
-	t.TABLE_NAME AS table_name,
+	group_concat(k.column_name ORDER BY k.ordinal_position) AS column_names,
+	t.table_name AS table_name,
 	t.table_schema AS table_schema,
-	t.CONSTRAINT_NAME AS constraint_name
+	t.constraint_name AS constraint_name
 	FROM
 	information_schema.table_constraints
 										   t
@@ -11,4 +11,4 @@ SELECT
 	WHERE
 		t.constraint_type = 'PRIMARY KEY'
 	GROUP BY
-		t.table_schema, t.TABLE_NAME;
+		t.table_schema, t.table_name;

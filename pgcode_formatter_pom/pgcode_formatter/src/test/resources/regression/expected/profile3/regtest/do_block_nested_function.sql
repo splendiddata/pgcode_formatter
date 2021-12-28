@@ -10,7 +10,8 @@ begin
     then
         create function myschema.details 
                 ( in          numeric
-                , out OUT_REC refcursor )
+                , out OUT_REC refcursor
+            )
         as $$
 declare
     stack      text;

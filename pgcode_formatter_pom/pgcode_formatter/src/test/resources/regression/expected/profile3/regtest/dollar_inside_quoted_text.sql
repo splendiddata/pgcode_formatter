@@ -1,6 +1,7 @@
 CREATE FUNCTION sales_func
         ( employee_id int
-        , vehicle_id  int )
+        , vehicle_id  int
+    )
 RETURNS sales
 AS $$
 DECLARE

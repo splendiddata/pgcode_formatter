@@ -1,5 +1,5 @@
-do $tag1$
-begin
-	raise info $$%$$, $tag2$any tag would work$tag2$;
-end;
+DO $tag1$
+BEGIN
+	RAISE INFO $$%$$, $tag2$any tag would work$tag2$;
+END;
 $tag1$;

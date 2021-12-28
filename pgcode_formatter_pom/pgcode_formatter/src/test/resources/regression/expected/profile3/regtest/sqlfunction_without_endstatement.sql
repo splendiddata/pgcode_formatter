@@ -19,7 +19,8 @@ returns table
         , tidx_blks_read_delta bigint
         , tidx_blks_hit bigint
         , tidx_blks_hit_delta bigint
-        , sample_time timestamptz )
+        , sample_time timestamptz
+    )
 as $$
 
 select relid
@@ -65,7 +66,8 @@ from ( select relid
             , row_number() over w rn
        from pg_statio_user_tables_hist
        where sample_time > p_sample_time
-       window w as (partition by relid order by sample_time) ) LOX
+       window w as (partition by relid order by sample_time)
+     )         LOX
 where rn > 1
 $$
 language sql;

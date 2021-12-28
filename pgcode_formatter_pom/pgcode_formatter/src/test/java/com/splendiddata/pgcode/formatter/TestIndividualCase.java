@@ -105,24 +105,25 @@ public class TestIndividualCase {
         }
         Assertions.assertNotNull(output, "The output is supposed to not be null");
         Assertions.assertEquals(
-                "CREATE FUNCTION sales_func\n" + 
-                "        ( employee_id int\n" + 
-                "        , vehicle_id  int )\n" + 
-                "RETURNS sales\n" + 
-                "AS $$\n" + 
-                "DECLARE\n" + 
-                "    car_model   text;\n" + 
-                "    car_price   int;\n" + 
-                "    sales_bonus int;\n" + 
-                "    bonus       int;\n" + 
-                "BEGIN\n" + 
-                "    EXECUTE 'SELECT model, sales_bonus, price FROM cars WHERE car_id = $1' INTO car_model, sales_bonus, car_price USING vehicle_id;\n" + 
-                "    INSERT INTO sales (staff_id, car_id, staff_bonus, sales_price)\n" + 
-                "        VALUES (employee_id, vehicle_id, bonus, car_price);\n" + 
-                "    RETURN QUERY SELECT * FROM sales ORDER BY created_at;\n" +
-                "END;\n" +
-                "$$\n" + 
-                "LANGUAGE plpgsql;\n" + 
-                "", output);
+                "CREATE FUNCTION sales_func\n"
+                + "        ( employee_id int\n"
+                + "        , vehicle_id  int\n"
+                + "    )\n"
+                + "RETURNS sales\n"
+                + "AS $$\n"
+                + "DECLARE\n"
+                + "    car_model   text;\n"
+                + "    car_price   int;\n"
+                + "    sales_bonus int;\n"
+                + "    bonus       int;\n"
+                + "BEGIN\n"
+                + "    EXECUTE 'SELECT model, sales_bonus, price FROM cars WHERE car_id = $1' INTO car_model, sales_bonus, car_price USING vehicle_id;\n"
+                + "    INSERT INTO sales (staff_id, car_id, staff_bonus, sales_price)\n"
+                + "        VALUES (employee_id, vehicle_id, bonus, car_price);\n"
+                + "    RETURN QUERY SELECT * FROM sales ORDER BY created_at;\n"
+                + "END;\n"
+                + "$$\n"
+                + "LANGUAGE plpgsql;\n"
+                + "", output);
     }
 }

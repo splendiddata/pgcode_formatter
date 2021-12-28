@@ -1,6 +1,5 @@
-SELECT code.code, properties_code.wert
-	, properties_code1.wert
-	, properties_code2.wert
+SELECT code.code, properties_code.wert,
+	properties_code1.wert, properties_code2.wert
 FROM code 
 	 INNER JOIN commoncode ON (code.id_code = commoncode.id_codeparent) 
 	 INNER JOIN commoncode commoncode1 ON (commoncode.id_kindcode = commoncode1.id_codeparent) 
@@ -21,5 +20,5 @@ WHERE variables.name = 'acktuel_adresse'
 	  AND variables1.name = 'variable_name'
 	  AND variables2.name = 'variable_name'
 	  AND transactions.code = 'XXXXXXXXXXXXX'
-	  AND mvt_temps.statutok = True
+	  AND mvt_temps.statutok = TRUE
 	  AND products.produktcode = '123456789'

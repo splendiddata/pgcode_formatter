@@ -1,42 +1,42 @@
 CREATE TABLE films 
-		( code				  char(5)				  CONSTRAINT firstkey PRIMARY KEY
-		, title 			  varchar(40)			  NOT NULL
-		, did				  integer				  NOT NULL
-		, date_prod 		  date
-		, kind				  varchar(10)
-		, len				  interval hour to minute );
-CREATE TABLE array_int (vector		  int[][]);
+		( code				  CHAR(5)				  CONSTRAINT firstkey PRIMARY KEY,
+		title				VARCHAR(40) 			NOT NULL,
+		did 				INTEGER 				NOT NULL,
+		date_prod			DATE,
+		kind				VARCHAR(10),
+		len 				INTERVAL HOUR TO MINUTE );
+CREATE TABLE array_int (vector		  INT[][]);
 CREATE TABLE films 
-		( code				  char(5)
-		, title 			  varchar(40)
-		, did				  integer
-		, date_prod 		  date
-		, kind				  varchar(10)
-		, len				  interval hour to minute
-		, CONSTRAINT production UNIQUE(date_prod) );
+		( code				  CHAR(5),
+		title				VARCHAR(40),
+		did 				INTEGER,
+		date_prod			DATE,
+		kind				VARCHAR(10),
+		len 				INTERVAL HOUR TO MINUTE,
+		CONSTRAINT production UNIQUE(date_prod) );
 CREATE TABLE distributors 
-		( did		integer 	 CHECK (did > 100)
-		, name		varchar(40) );
+		( did		INTEGER 	 CHECK (did > 100),
+		NAME	  VARCHAR(40) );
 CREATE TABLE films 
-		( code				  char(5)
-		, title 			  varchar(40)
-		, did				  integer
-		, date_prod 		  date
-		, kind				  varchar(10)
-		, len				  interval hour to minute
-		, CONSTRAINT code_title PRIMARY KEY(code, title) );
+		( code				  CHAR(5),
+		title				VARCHAR(40),
+		did 				INTEGER,
+		date_prod			DATE,
+		kind				VARCHAR(10),
+		len 				INTERVAL HOUR TO MINUTE,
+		CONSTRAINT code_title PRIMARY KEY(code, title) );
 CREATE TABLE distributors 
-		( name			  varchar(40)  DEFAULT 'Luso Films'
-		, did			  integer	   DEFAULT nextval('distributors_serial')
-		, modtime		  timestamp    DEFAULT current_timestamp );
+		( NAME			  VARCHAR(40)  DEFAULT 'Luso Films',
+		did 			INTEGER 	 DEFAULT nextval('distributors_serial'),
+		modtime 		TIMESTAMP	 DEFAULT CURRENT_TIMESTAMP );
 CREATE TABLE distributors 
-		( did		integer
-		, name		varchar(40)
-		, UNIQUE(name) WITH (fillfactor=70) ) WITH (fillfactor=70);
+		( did		INTEGER,
+		NAME	  VARCHAR(40),
+		UNIQUE(NAME) WITH (fillfactor=70) ) WITH (fillfactor=70);
 CREATE TABLE measurement_year_month 
-		( logdate			  date not null
-		, peaktemp			  int
-		, unitsales 		  int )
+		( logdate			  DATE NOT NULL,
+		peaktemp			INT,
+		unitsales			INT )
 	PARTITION BY RANGE (
-		EXTRACT(YEAR FROM logdate)
-		, EXTRACT(MONTH FROM logdate) );
+		EXTRACT(YEAR FROM logdate),
+		EXTRACT(MONTH FROM logdate) );

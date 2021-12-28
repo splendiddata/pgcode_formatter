@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
  * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
@@ -37,6 +37,7 @@ public class CaseStatementNode extends SrcNode {
     private List<WhenClauseNode> whenClauses = new ArrayList<>();
     private SrcNode elseExpression;
     private ScanResult endNode;
+    private boolean caseWithOperand = false;
 
     /**
      * Constructor
@@ -52,6 +53,7 @@ public class CaseStatementNode extends SrcNode {
         for (nextNode = startNode.getNext(); !nextNode.isEof()
                 && !nextNode.getType().isInterpretable(); nextNode = priorNode.getNext()) {
             priorNode = nextNode;
+            caseWithOperand = true;
         }
         priorNode.setNext(null);
         if ("when".equalsIgnoreCase(nextNode.getText())) {
@@ -132,28 +134,34 @@ public class CaseStatementNode extends SrcNode {
     @Override
     public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
+        FormatContext context = new FormatContext(config, formatContext);
+        if (caseWithOperand) {
+            context.setCaseType(config.getCaseOperand());
+        } else {
+            context.setCaseType(config.getCaseWhen());
+        }
+        RenderMultiLines result = new RenderMultiLines(this, context);
 
         for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
             ScanResult current = Util.interpretStatement(node);
 
-            RenderResult renderResult = current.beautify(formatContext, result, config);
-            result.addRenderResult(renderResult, formatContext);
+            RenderResult renderResult = current.beautify(context, result, config);
+            result.addRenderResult(renderResult, context);
 
         }
 
         for (ScanResult node = caseExpression; node != null; node = node.getNext()) {
             ScanResult current = Util.interpretStatement(node);
 
-            RenderResult renderResult = current.beautify(formatContext, result, config);
-            result.addRenderResult(renderResult, formatContext);
+            RenderResult renderResult = current.beautify(context, result, config);
+            result.addRenderResult(renderResult, context);
         }
 
         boolean newLineExists = result.isLastNonWhiteSpaceEqualToLinefeed();
         for (WhenClauseNode node : whenClauses) {
-            RenderMultiLines whenClauseResult = (RenderMultiLines) node.beautify(formatContext, result, config);
+            RenderMultiLines whenClauseResult = (RenderMultiLines) node.beautify(context, result, config);
 
-            switch (config.getCaseWhen().getWhenPosition().getValue()) {
+            switch (context.getCaseType().getWhenPosition().getValue()) {
             case WHEN_UNDER_CASE:
                 whenClauseResult.addLineAtStart(newLineExists);
                 break;
@@ -168,7 +176,7 @@ public class CaseStatementNode extends SrcNode {
                 break;
             }
 
-            result.addRenderResult(whenClauseResult, formatContext);
+            result.addRenderResult(whenClauseResult, context);
             newLineExists = result.isLastNonWhiteSpaceEqualToLinefeed();
         }
 
@@ -177,9 +185,9 @@ public class CaseStatementNode extends SrcNode {
             for (ScanResult node = elseExpression; node != null; node = node.getNext()) {
                 ScanResult current = Util.interpretStatement(node);
 
-                RenderResult renderResult = current.beautify(formatContext, result, config);
+                RenderResult renderResult = current.beautify(context, result, config);
                 newLineExists = result.isLastNonWhiteSpaceEqualToLinefeed();
-                switch (config.getCaseWhen().getElsePosition()) {
+                switch (context.getCaseType().getElsePosition()) {
                 case ELSE_UNDER_WHEN:
                 case ELSE_UNDER_THEN:
                     if (current instanceof IdentifierNode && "else".equalsIgnoreCase(current.toString())) {
@@ -192,7 +200,7 @@ public class CaseStatementNode extends SrcNode {
                     // do nothing
                     break;
                 }
-                result.addRenderResult(renderResult, formatContext);
+                result.addRenderResult(renderResult, context);
             }
         }
 
@@ -202,8 +210,8 @@ public class CaseStatementNode extends SrcNode {
 
             for (ScanResult node = endNode; node != null; node = node.getNext()) {
                 ScanResult current = Util.interpretStatement(node);
-                RenderResult renderResult = current.beautify(formatContext, result, config);
-                switch (config.getCaseWhen().getEndPosition()) {
+                RenderResult renderResult = current.beautify(context, result, config);
+                switch (context.getCaseType().getEndPosition()) {
                 case END_UNDER_CASE:
                     result.addLine("");
                     break;
@@ -216,7 +224,7 @@ public class CaseStatementNode extends SrcNode {
                     break;
                 }
 
-                result.addRenderResult(renderResult, formatContext);
+                result.addRenderResult(renderResult, context);
             }
         }
 

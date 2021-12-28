@@ -1,19 +1,19 @@
-CREATE OR REPLACE FUNCTION outer()
-RETURNS void
+CREATE OR REPLACE FUNCTION OUTER()
+RETURNS VOID
 AS $outer$
 DECLARE
-	s text;
+	s TEXT;
 BEGIN
-	CREATE OR REPLACE FUNCTION inner()
-	RETURNS text
+	CREATE OR REPLACE FUNCTION INNER()
+	RETURNS TEXT
 	AS $inner$
 BEGIN
 	RETURN 'returned by inner function';
 END;
 $inner$
-	language plpgsql;
+	LANGUAGE plpgsql;
 	SELECT inner() INTO s;
 	RAISE NOTICE '%', s;
 END;
 $outer$
-language plpgsql;
+LANGUAGE plpgsql;

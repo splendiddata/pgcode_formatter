@@ -1,6 +1,7 @@
 create or replace function closeStatus
         ( code       integer
-        , buildClose integer )
+        , buildClose integer
+    )
 returns void
 language plpgsql
 security definer

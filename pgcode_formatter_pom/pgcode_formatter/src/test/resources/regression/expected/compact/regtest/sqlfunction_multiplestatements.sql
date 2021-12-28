@@ -1,10 +1,10 @@
-create or replace function deactivate_product(p_product_name text)
-returns void
-as $$
-update product set product_active = false where product_name = lower(p_product_name);
-update product_version set product_version_active = false
-	where product_id = (select product_id from product where product_name = lower(p_product_name));
-update product_component set component_active = false
-	where product_id = (select product_id from product where product_name = lower(p_product_name));
+CREATE OR REPLACE FUNCTION deactivate_product(p_product_name TEXT)
+RETURNS VOID
+AS $$
+UPDATE product SET product_active = FALSE WHERE product_name = lower(p_product_name);
+UPDATE product_version SET product_version_active = FALSE
+	WHERE product_id = (SELECT product_id FROM product WHERE product_name = lower(p_product_name));
+UPDATE product_component SET component_active = FALSE
+	WHERE product_id = (SELECT product_id FROM product WHERE product_name = lower(p_product_name));
 $$
-language sql;
+LANGUAGE SQL;

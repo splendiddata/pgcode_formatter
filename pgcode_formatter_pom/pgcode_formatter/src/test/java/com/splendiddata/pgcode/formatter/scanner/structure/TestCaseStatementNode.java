@@ -52,12 +52,12 @@ public class TestCaseStatementNode {
                 "      RAISE NOTICE  'other value';\n" +
                 "END CASE",
                 // expected
-                "CASE a\n" +
-                "    WHEN 1 THEN RAISE NOTICE 'a = 1';\n" +
-                "    WHEN 2 THEN RAISE NOTICE 'a = 2';\n" +
-                "ELSE RAISE NOTICE 'other value';\n" +
-                "END\n" +
-                "CASE"
+                "CASE a \n"
+                + "WHEN 1 THEN RAISE NOTICE 'a = 1';\n"
+                + "WHEN 2 THEN RAISE NOTICE 'a = 2';\n"
+                + "ELSE RAISE NOTICE 'other value';\n"
+                + "END\n"
+                + "CASE"
                 // @formatter:on
                 } };
     }

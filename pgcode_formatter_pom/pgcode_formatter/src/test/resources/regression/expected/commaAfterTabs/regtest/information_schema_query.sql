@@ -20,8 +20,8 @@ SELECT DISTINCT
 										(
 											(
 												(
-													((nv.OID = v.relnamespace) AND (v.relkind = 'v'::"char")) AND
-													(v.OID = dv.refobjid)
+													((nv.oid = v.relnamespace) AND (v.relkind = 'v'::"char")) AND
+													(v.oid = dv.refobjid)
 													) AND (dv.refclassid = ('pg_class'::REGCLASS)::OID)
 												) AND (dv.classid = ('pg_rewrite'::REGCLASS)::OID)
 											) AND (dv.deptype = 'i'::"char")
@@ -29,8 +29,8 @@ SELECT DISTINCT
 									) AND (dv.refobjid <> dt.refobjid)
 								) AND (dt.classid = ('pg_rewrite'::REGCLASS)::OID)
 							) AND (dt.refclassid = ('pg_class'::REGCLASS)::OID)
-						) AND (dt.refobjid = t.OID)
-					) AND (t.relnamespace = nt.OID)
+						) AND (dt.refobjid = t.oid)
+					) AND (t.relnamespace = nt.oid)
 				) AND (t.relkind = ANY (ARRAY['r'::"char", 'v'::"char"]))
 			) AND pg_has_role(t.relowner, 'USAGE'::TEXT)
 		)

@@ -1,1 +1,1 @@
-select 'escaped line char', E'\n'::varchar;
+SELECT 'escaped line char', E'\n'::VARCHAR;

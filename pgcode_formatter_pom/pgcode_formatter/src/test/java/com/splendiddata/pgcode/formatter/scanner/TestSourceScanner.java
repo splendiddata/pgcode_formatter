@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -22,10 +22,6 @@ import java.io.StringReader;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import com.splendiddata.pgcode.formatter.scanner.ScanResult;
-import com.splendiddata.pgcode.formatter.scanner.ScanResultStringLiteral;
-import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
 
 /**
  * Some test cases for the source scanner

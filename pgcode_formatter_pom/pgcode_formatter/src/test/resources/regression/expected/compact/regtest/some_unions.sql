@@ -1,22 +1,22 @@
-select 'a'
-union
-select 'b';
-select 'a'
-union all
-select ('b'), ('c');
-values
+SELECT 'a'
+UNION
+SELECT 'b';
+SELECT 'a'
+UNION ALL
+SELECT ('b'), ('c');
+VALUES
 ('a')
 ,
 ('b')
 ,
 ('c')
-except
-select 'b';
-values
+EXCEPT
+SELECT 'b';
+VALUES
 ('a')
 ,
 ('b')
 ,
 ('c')
-intersect
-select 'b';
+INTERSECT
+SELECT 'b';

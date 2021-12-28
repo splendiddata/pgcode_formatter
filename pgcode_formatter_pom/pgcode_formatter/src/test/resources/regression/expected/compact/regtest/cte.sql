@@ -1,3 +1,3 @@
-with a as (select x, y, z from twelve join nine on a = 2 and b = a)
-	, b as (select * from a)
-select * from b;
+WITH a AS (SELECT x, y, z FROM twelve JOIN nine ON a = 2 AND b = a),
+	b AS (SELECT * FROM a)
+SELECT * FROM b;

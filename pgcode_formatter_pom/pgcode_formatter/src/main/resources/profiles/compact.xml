@@ -12,11 +12,11 @@
         <maxArgumentsPerGroup value="10" weight="5.0" />
         <maxLengthOfGroup value="50" weight="10.0" />
         <indent value="indented" weight="10.0" />
-        <commaBeforeOrAfter>before</commaBeforeOrAfter>
+        <commaBeforeOrAfter>after</commaBeforeOrAfter>
     </commaSeparatedListGrouping>
-    <functionCallArgumentGrouping multilineOpeningParenBeforeArgument="false"
+    <functionCallArgumentGrouping multilineOpeningParenBeforeArgument="true"
         multilineClosingParenOnNewLine="false">
-        <indent value="underFirstArgument" weight="10.0" />
+        <indent value="indented" weight="10.0" />
     </functionCallArgumentGrouping>
     <functionDefinitionArgumentGrouping defaultIndicator="alterToEqualsSign">
         <argumentName alignment="subsequent" />
@@ -27,14 +27,14 @@
         <maxSingleLineLength value="100" weight="10.0"/>
         <aliasAlignment alignment="subsequent" />
     </fromItemGrouping>
-    <caseOperand elsePosition="elseUnderThen" endPosition="endUnderCase">
+    <caseOperand elsePosition="elseUnderWhen" endPosition="endUnderCase">
         <maxSingleLineClause value="60" weight="5.0" />
         <whenPosition value="whenUnderCase" weight="10.0" />
-        <thenPosition value="thenIndented" weight="10.0" />
+        <thenPosition value="thenAfterWhenDirectly" weight="10.0" />
     </caseOperand>
     <caseWhen elsePosition="elseUnderWhen" endPosition="endUnderCase">
         <maxSingleLineClause value="60" weight="5.0" />
-        <whenPosition value="whenIndented" />
+        <whenPosition value="whenUnderCase" />
         <thenPosition value="thenAfterWhenAligned" weight="10.0" />
     </caseWhen>
     <languagePlpgsql>
@@ -46,6 +46,6 @@
             <forStatement loop="afterCondition" />
         </codeSection>
     </languagePlpgsql>
-    <letterCaseKeywords>unchanged</letterCaseKeywords>
+    <letterCaseKeywords>uppercase</letterCaseKeywords>
     <letterCaseFunctions>unchanged</letterCaseFunctions>
 </ns2:configuration>

@@ -1,15 +1,15 @@
-create or replace function literal_with_newline_character(
-	q varchar
-	, s varchar DEFAULT '
-                  ,'::varchar
-	, f varchar DEFAULT NULL::varchar
-	, l varchar DEFAULT NULL::varchar )
-returns integer
-language plpgsql
-security definer
-as $function$
+CREATE OR REPLACE FUNCTION literal_with_newline_character(
+	q VARCHAR,
+	s VARCHAR DEFAULT '
+                  ,'::VARCHAR,
+	f VARCHAR DEFAULT NULL::VARCHAR,
+	l VARCHAR DEFAULT NULL::VARCHAR )
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $function$
 DECLARE
-	i integer := 0;
+	i INTEGER := 0;
 BEGIN
 	RETURN i;
 END;

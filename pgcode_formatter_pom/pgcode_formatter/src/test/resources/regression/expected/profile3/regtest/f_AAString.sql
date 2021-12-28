@@ -138,8 +138,8 @@ BEGIN
     --  EXISTs test
     --
     if ( SELECT ( CASE count(*)
-                      WHEN 0 then FALSE
-                      else TRUE
+                  WHEN 0 then FALSE
+                  else TRUE
                   END
                 )
          FROM tbl_country2012_l1

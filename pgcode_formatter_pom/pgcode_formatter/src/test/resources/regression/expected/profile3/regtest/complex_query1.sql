@@ -158,5 +158,6 @@ CREATE or replace VIEW v1 (e, id, s, t, st1, st2) AS WITH tab1 as
          left join tab1 tb1 on tb1.col2 = stg.col2 and 
                                                        ( tb1.col1 >= ch.s and tb1.col1 < coalesce( ch.t
                                                                                                                                                , clock_timestamp() + (1/ 60::numeric /24::numeric||' D')::interval
-                                                                                                                                               ) )
+                                                                                                                                               )
+                                                       )
     GROUP BY ch.e, stg.st1;

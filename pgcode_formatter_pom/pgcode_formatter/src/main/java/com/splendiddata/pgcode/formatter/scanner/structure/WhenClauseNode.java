@@ -131,7 +131,7 @@ public class WhenClauseNode extends SrcNode {
             if (node instanceof IdentifierNode && "then".equalsIgnoreCase(node.toString())) {
                 boolean onSeparateLine = config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()
                         && ConfigUtil.isMajorKeywords(node.getText());
-                switch (config.getCaseWhen().getThenPosition().getValue()) {
+                switch (formatContext.getCaseType().getThenPosition().getValue()) {
                 case THEN_AFTER_WHEN_DIRECTLY: // on the same line immediately following the WHEN condition
                     // do nothing special, just add
                     result.addRenderResult(res, formatContext);

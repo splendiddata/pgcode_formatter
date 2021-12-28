@@ -8,7 +8,8 @@ FROM
        FROM event
        WHERE data ->> 'type' =
                'view_homepage'
-       GROUP BY user_id ) e1
+       GROUP BY user_id
+     )             e1
      LEFT JOIN LATERAL ( -- For each row, get the first time the user_id did the enter_credit_card
                    -- event, if one exists within two weeks of view_homepage_time.
                    SELECT 1 AS enter_credit_card
@@ -19,4 +20,4 @@ FROM
                                    AND time BETWEEN view_homepage_time AND (view_homepage_time + 1000 * 60 * 60 * 24 * 14)
                            ORDER BY time
                            LIMIT 1
-                 )        e2 ON TRUE;
+                 ) e2 ON TRUE;

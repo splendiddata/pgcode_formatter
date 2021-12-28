@@ -208,8 +208,8 @@ BEGIN
 		SELECT
 			(
 				CASE count(*)
-					WHEN 0 then FALSE
-					ELSE TRUE
+				WHEN 0 then FALSE
+				ELSE TRUE
 				END
 				)
 			FROM

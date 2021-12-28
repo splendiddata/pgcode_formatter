@@ -1,27 +1,27 @@
-do $do$
-begin
-	if not exists (
-		  select *
-		  from pg_catalog.pg_proc
-		  where pronamespace = 'myschema'::regnamespace
-				and proname = 'details'
-				and proargtypes[0] = 'numeric'::regtype
-				and array_length(proargtypes, 1) = 1 ) then
-		create function myschema.details (in numeric, out OUT_REC refcursor)
-		as $$
-declare
-	stack text;
-begin
-	get diagnostics stack := PG_CONTEXT;
-	raise exception 'function: % is only a prototype', regexp_replace(
-			stack
-			, 'PL/pgSQL function (.*) line [0-9]+ at GET DIAGNOSTICS'
-			, E'\\1' ) using hint = 'please implement';
-end
+DO $do$
+BEGIN
+	IF NOT exists (
+		  SELECT *
+		  FROM pg_catalog.pg_proc
+		  WHERE pronamespace = 'myschema'::REGNAMESPACE
+				AND proname = 'details'
+				AND proargtypes[0] = 'numeric'::REGTYPE
+				AND array_length(proargtypes, 1) = 1 ) THEN
+		CREATE FUNCTION myschema.details (IN NUMERIC, OUT OUT_REC REFCURSOR)
+		AS $$
+DECLARE
+	stack TEXT;
+BEGIN
+	GET DIAGNOSTICS stack := PG_CONTEXT;
+	RAISE EXCEPTION 'function: % is only a prototype', regexp_replace(
+			stack,
+			'PL/pgSQL function (.*) line [0-9]+ at GET DIAGNOSTICS',
+			E'\\1' ) USING HINT = 'please implement';
+END
 $$
-		language plpgsql;
-	end if;
-end
+		LANGUAGE plpgsql;
+	END IF;
+END
 $do$
-language
+LANGUAGE
 plpgsql;

@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.internal;
@@ -21,11 +18,14 @@ import java.util.Deque;
 import java.util.LinkedList;
 
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
+import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CaseType;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CommaSeparatedListGroupingType;
 import com.splendiddata.pgcode.formatter.scanner.structure.ArgumentDefinitionOffsets;
 
 /**
  * Formatting context.
+ * <p>
+ * Contains settings that may vary because of the context in which they are used.
  */
 public class FormatContext {
     private final FormatConfiguration config;
@@ -37,6 +37,7 @@ public class FormatContext {
     private String language;
     private CommaSeparatedListGroupingType commaSeparatedListGroupingType;
     private ArgumentDefinitionOffsets argumentDefinitionOffsets;
+    private CaseType caseType;
 
     /**
      * Constructor
@@ -56,6 +57,7 @@ public class FormatContext {
             if (context.getAvailableWidth() < availableWidth) {
                 availableWidth = context.getAvailableWidth();
             }
+            caseType = context.caseType;
         }
         if (config != null) {
             if (config.getLineWidth().getValue() < availableWidth) {
@@ -70,6 +72,7 @@ public class FormatContext {
 
     /**
      * Returns the available width
+     * 
      * @return The available width
      */
     public int getAvailableWidth() {
@@ -78,7 +81,9 @@ public class FormatContext {
 
     /**
      * Set the available width
-     * @param width The available width to set
+     * 
+     * @param width
+     *            The available width to set
      * @return this
      */
     public FormatContext setAvailableWidth(int width) {
@@ -88,6 +93,7 @@ public class FormatContext {
 
     /**
      * Returns the offset
+     * 
      * @return The offset
      */
     public int getOffset() {
@@ -96,6 +102,7 @@ public class FormatContext {
 
     /**
      * Returns the language
+     * 
      * @return The language
      */
     public String getLanguage() {
@@ -104,7 +111,9 @@ public class FormatContext {
 
     /**
      * Sets the language
-     * @param language The language to set
+     * 
+     * @param language
+     *            The language to set
      * @return this
      */
     public FormatContext setLanguage(String language) {
@@ -116,7 +125,8 @@ public class FormatContext {
      * Return a string of spaces according to the current indentation level and the spaces setting for indenting.
      *
      * @return String spaces
-     * @param newLine true for the standard indent, false to ge just a space
+     * @param newLine
+     *            true for the standard indent, false to ge just a space
      */
     public static String indent(boolean newLine) {
         if (newLine) {
@@ -186,6 +196,24 @@ public class FormatContext {
             return 0;
         }
         return indentStack.peek().intValue();
+    }
+
+    /**
+     * Returns the case type to render an case clause or case statement.
+     *
+     * @return CaseType The caseOperand or caseWhen configuration item
+     */
+    public CaseType getCaseType() {
+        return caseType;
+    }
+
+    /**
+     * Sets the case type
+     *
+     * @param caseType
+     */
+    public void setCaseType(CaseType caseType) {
+        this.caseType = caseType;
     }
 
 }

@@ -1,10 +1,10 @@
 CREATE OR REPLACE FUNCTION public.somefunc_usingLabel()
-RETURNS integer
+RETURNS INTEGER
 LANGUAGE plpgsql
 AS $function$
 << outerblock >>
 DECLARE
-	quantity integer := 30;
+	quantity INTEGER := 30;
 BEGIN
 	RAISE NOTICE 'Quantity here is %', quantity; -- Prints 30
 	quantity := 50;
@@ -12,7 +12,7 @@ BEGIN
 	-- Create a subblock
 	--
 	DECLARE
-		quantity integer := 80;
+		quantity INTEGER := 80;
 	BEGIN
 		RAISE NOTICE 'Quantity here is %', quantity; -- Prints 80
 		RAISE NOTICE 'Outer quantity here is %', outerblock.quantity; -- Prints 50
