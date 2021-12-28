@@ -20,7 +20,7 @@ returns table
         , tidx_blks_hit bigint
         , tidx_blks_hit_delta bigint
         , sample_time timestamptz
-    )
+        )
 as $$
 
 select relid

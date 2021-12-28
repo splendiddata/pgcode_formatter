@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -23,6 +23,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
+import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.BeforeOrAfterType;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CommaSeparatedListGroupingType;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CommaSeparatedListIndentOption;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
@@ -241,6 +242,14 @@ public class InParentheses extends SrcNode {
         if (formatContext.getCommaSeparatedListGrouping().isMultilineClosingParenOnNewLine().booleanValue()) {
             switch (commaSeparatedListGrouping.getIndent().getValue()) {
             case DOUBLE_INDENTED:
+                if (BeforeOrAfterType.BEFORE.equals(formatContext.getCommaSeparatedListGrouping().getCommaBeforeOrAfter())) {
+                    // Align the closing paren with the leading commas
+                    addTo.addLine(FormatContext.indent(true) + FormatContext.indent(true));
+                } else {
+                    // Emphatically close the list by exdenting it
+                    addTo.addLine(FormatContext.indent(true));
+                }
+                break;
             case INDENTED:
                 addTo.addLine(FormatContext.indent(true));
                 break;

@@ -108,7 +108,7 @@ public class TestIndividualCase {
                 "CREATE FUNCTION sales_func\n"
                 + "        ( employee_id int\n"
                 + "        , vehicle_id  int\n"
-                + "    )\n"
+                + "        )\n"
                 + "RETURNS sales\n"
                 + "AS $$\n"
                 + "DECLARE\n"

@@ -2,7 +2,7 @@
 CREATE OR REPLACE FUNCTION "increment"
         (     i integer
         , out b numeric(20)
-    )
+        )
 AS $function$
 BEGIN
     a := CASE

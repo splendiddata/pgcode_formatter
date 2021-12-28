@@ -11,7 +11,7 @@ begin
         create function myschema.details 
                 ( in          numeric
                 , out OUT_REC refcursor
-            )
+                )
         as $$
 declare
     stack      text;

@@ -12,7 +12,7 @@ CREATE or REPLACE FUNCTION some_schema.f_many_args
         , argum_as_dest VARCHAR
         , argum_tc_orig VARCHAR
         , argum_tc_dest VARCHAR
-    )
+        )
 RETURNS NUMERIC
 AS $body$
 -- Signature:

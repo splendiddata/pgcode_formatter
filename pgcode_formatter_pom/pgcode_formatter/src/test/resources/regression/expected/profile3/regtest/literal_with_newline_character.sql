@@ -7,7 +7,7 @@ create or replace function literal_with_newline_character
                   DEFAULT NULL::varchar
         , l varchar 
                   DEFAULT NULL::varchar
-    )
+        )
 returns integer
 language plpgsql
 security definer
