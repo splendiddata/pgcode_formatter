@@ -3,12 +3,12 @@
 SELECT
 	*
 	FROM
-	emp;
-\echo :a 
+		emp;
+\echo :a
 SELECT
 	:a;
 \unset a
 CREATE OR REPLACE FUNCTION add_one(                         INTEGER)
 RETURNS INTEGER
-AS '/usr/lib/postgresql/9.1/lib/add_one', 
+AS '/usr/lib/postgresql/9.1/lib/add_one' ,
 LANGUAGE c;

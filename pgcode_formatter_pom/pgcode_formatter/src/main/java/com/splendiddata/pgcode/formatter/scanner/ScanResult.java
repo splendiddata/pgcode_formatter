@@ -1,21 +1,20 @@
 /*
  * Copyright (c) Splendid Data Product Development B.V. 2020
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner;
+
+import org.apache.logging.log4j.LogManager;
 
 import com.splendiddata.pgcode.formatter.CodeFormatterThreadLocal;
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
@@ -79,7 +78,9 @@ public interface ScanResult {
 
     /**
      * Sets the begin end nesting level
-     * @param level The begin end nesting level to set
+     * 
+     * @param level
+     *            The begin end nesting level to set
      */
     default void setBeginEndLevel(int level) {
         // empty
@@ -198,9 +199,9 @@ public interface ScanResult {
      * Checks whether the encountered line feed is followed by a line comment.
      * 
      * We distinguish between line comments at the end of line (i.e. after some source code) and line comments on a new
-     * line (may be preceded by spaces or tabs).
-     * When a line feed is encountered, a check is done whether it is followed by a line comment.
-     * Based on this a decision can be made whether the line feed will be added to the formatted result or not.
+     * line (may be preceded by spaces or tabs). When a line feed is encountered, a check is done whether it is followed
+     * by a line comment. Based on this a decision can be made whether the line feed will be added to the formatted
+     * result or not.
      *
      * @return true if a line feed is followed by a line comment, otherwise false.
      */
@@ -248,5 +249,37 @@ public interface ScanResult {
         }
 
         return nextNonWhitespace;
+    }
+
+    /**
+     * returns the length of the render result if it fits on a single line or returns a negative value if single line
+     * rendering is not an option.
+     * <p>
+     * For practically all render attempts, first a check is made if the result would fit on a single line. To check
+     * this, every nested ScanResult must be rendered, usually in many recursions. The idea of this method is to be able
+     * to cash the result of the single-line rendering.
+     * <p>
+     * To be able to cash the result, this method is not interested in capabilities of the context. It is up to the
+     * invoker that maybe the returned length will be too big to fit into a single line. In practice as soon as some
+     * limitation will be exceeded, the invoker should decide to render multiline or return a negative value if the
+     * invoker was the getSingleLineWidth() method of another object.
+     * <p>
+     * It is advisable for implementing objects to at least remember the integer result of the first invocation. If that
+     * result is positive, the RenderResult may be cached as well so it can be returned immediately by the
+     * {@link #beautify(FormatContext, RenderMultiLines, FormatConfiguration)} method when applicable.
+     *
+     * @param config
+     *            The initial configuration
+     * @return int a positive number indicating the length of a single-line render result or s negative value if this
+     *         object does not fit on a single line
+     */
+    default int getSingleLineWidth(FormatConfiguration config) {
+        LogManager.getLogger(getClass())
+                .debug("Please override method getSingleLineWidth(config) in " + getClass().getName());
+        RenderResult testResult = beautify(new FormatContext(config, null), null, config);
+        if (testResult.getHeight() > 1) {
+            return -1;
+        }
+        return testResult.getWidth();
     }
 }

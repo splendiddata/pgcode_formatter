@@ -43,9 +43,14 @@ public class TestCaseClauseNode {
                 // input
                 "CASE WHEN true THEN 1 END",
                 // expected
-                "CASE WHEN true THEN 1\n" +
-                "END"
-                },
+                "CASE WHEN true THEN 1 END"
+                }, {
+                    // @formatter:off
+                    // input
+                    "CASE WHEN true THEN 1 else 2 END",
+                    // expected
+                    "CASE WHEN true THEN 1 else 2 END"
+                    },
                 { "CASE", "CASE" }
                 // @formatter:on
         };

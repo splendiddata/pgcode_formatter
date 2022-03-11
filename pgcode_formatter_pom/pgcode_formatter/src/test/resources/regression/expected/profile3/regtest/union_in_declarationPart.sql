@@ -5,9 +5,9 @@ SECURITY DEFINER
 AS $function$
 DECLARE
     curs1      CURSOR IS SELECT *
-                         FROM tab1
-                         union
-                         SELECT * FROM tab1 WHERE a = b LIMIT 1;
+                     FROM tab1
+                     union
+                     SELECT * FROM tab1 WHERE a = b LIMIT 1;
     x          INTEGER;
 BEGIN
     curs1 := NULL;

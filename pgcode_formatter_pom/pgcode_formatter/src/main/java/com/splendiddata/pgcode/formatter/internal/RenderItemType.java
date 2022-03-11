@@ -54,7 +54,7 @@ public enum RenderItemType {
     COMBINED_IDENTIFIER,
 
     /**
-     * Probably an identifier, found between double quotes
+     * A literal between double quotes
      * <p>
      * Note that the double quotes are stripped off
      * </p>

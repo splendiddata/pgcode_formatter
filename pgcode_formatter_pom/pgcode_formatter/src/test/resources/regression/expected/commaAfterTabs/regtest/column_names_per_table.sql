@@ -4,10 +4,10 @@ SELECT
 	t.table_schema AS table_schema,
 	t.constraint_name AS constraint_name
 	FROM
-	information_schema.table_constraints
-										   t
+		information_schema.table_constraints
+								   t
 		LEFT JOIN information_schema.key_column_usage
-										   k USING (CONSTRAINT_NAME, table_schema, TABLE_NAME)
+								   k USING (CONSTRAINT_NAME, table_schema, TABLE_NAME)
 	WHERE
 		t.constraint_type = 'PRIMARY KEY'
 	GROUP BY

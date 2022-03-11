@@ -1,22 +1,22 @@
-CREATE OR REPLACE VIEW v1 (e, id, s, t, st1, st2) AS WITH tab1 AS (
+CREATE OR REPLACE VIEW v1 (
+	e, id, s, t, st1, st2
+	) AS WITH tab1 AS (
 	SELECT
 		tb1.col1, tb1.col2
 		FROM
-		tab2 tb1
+			tab2 tb1
 		WHERE
-			date_trunc('day', tb1.col1) =
-			date_trunc('day', clock_timestamp())
+			date_trunc('day', tb1.col1) = date_trunc('day', clock_timestamp())
 	) , sta AS (
 	SELECT
 		row_number() over(ORDER BY col1 DESC) AS e,
 		bl.col1 AS s,
 		f1(bl.col1) over (ORDER BY col1) AS t
 		FROM
-		tab1 bl
+			tab1 bl
 		WHERE
 			col2 = 'test: abc'
-	) , stg AS
-	(
+	) , stg AS (
 	SELECT
 		oid1 AS id, 'test: xyz'::TEXT AS col2,
 		'a'::TEXT AS st1, 0 AS tag
@@ -110,35 +110,24 @@ CREATE OR REPLACE VIEW v1 (e, id, s, t, st1, st2) AS WITH tab1 AS (
 																								'query nr 23 ... 2' AS st1, 1 AS tag
 																								UNION ALL
 																								SELECT
-																									oid24 AS id,
-																									'query nr 24 ... 1' AS
-																									col2,
-																									'query nr 24 ... 2' AS
-																									st1,
-																									1 AS tag
+																									oid24 AS id, 'query nr 24 ... 1' AS col2,
+																									'query nr 24 ... 2' AS st1, 1 AS tag
 																									UNION ALL
 																									SELECT
 																										oid24 AS id,
-																										'query nr 24 ... 1'
-																										AS col2,
-																										'query nr 24 ... 2'
-																										AS st1,
-																										1 AS tag
+																										'query nr 24 ... 1' AS col2,
+																										'query nr 24 ... 2' AS st1, 1 AS tag
 																										UNION ALL
 																										SELECT
 																											oid25 AS id,
-																											'query nr 25 ... 1'
-																											AS col2,
-																											'query nr 25 ... 2'
-																											AS st1,
+																											'query nr 25 ... 1' AS col2,
+																											'query nr 25 ... 2' AS st1,
 																											1 AS tag
 																											UNION ALL
 																											SELECT
 																												oid26 AS id,
-																												'query nr 26 ... 1'
-																												AS col2,
-																												'query nr 26 ... 2'
-																												AS st1,
+																												'query nr 26 ... 1' AS col2,
+																												'query nr 26 ... 2' AS st1,
 																												1 AS tag
 	)
 	SELECT
@@ -153,13 +142,13 @@ CREATE OR REPLACE VIEW v1 (e, id, s, t, st1, st2) AS WITH tab1 AS (
 			ELSE 'other cases'
 		END st2
 		FROM
-		stg
-			JOIN sta                           ch ON ch.e <=100
-			LEFT JOIN tab1                     tb1 ON tb1.col2 = stg.col2 AND (
-				tb1.col1 >= ch.s AND tb1.col1 < coalesce(
-													ch.t,
-													clock_timestamp() + (1/ 60::NUMERIC /24::NUMERIC||' D')::INTERVAL
-													)
+			stg
+			JOIN sta               ch ON ch.e <=100
+			LEFT JOIN tab1         tb1 ON tb1.col2 = stg.col2 AND (
+			tb1.col1 >= ch.s AND tb1.col1 < coalesce(
+				ch.t,
+				clock_timestamp() + (1/ 60::NUMERIC /24::NUMERIC||' D')::INTERVAL
 				)
+			)
 		GROUP BY
 			ch.e, stg.st1;

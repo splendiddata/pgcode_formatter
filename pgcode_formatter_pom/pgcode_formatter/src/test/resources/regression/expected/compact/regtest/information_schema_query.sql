@@ -16,12 +16,12 @@ WHERE (
 								(
 									(
 										(
-											(((nv.oid = v.relnamespace) AND (v.relkind = 'v'::"char")) AND (v.oid = dv.refobjid)) AND
-											(dv.refclassid = ('pg_class'::REGCLASS)::OID) ) AND
-											(dv.classid = ('pg_rewrite'::REGCLASS)::OID) ) AND (dv.deptype = 'i'::"char") ) AND
-									(dv.objid = dt.objid) ) AND (dv.refobjid <> dt.refobjid) ) AND
-							(dt.classid = ('pg_rewrite'::REGCLASS)::OID) ) AND (dt.refclassid = ('pg_class'::REGCLASS)::OID) ) AND
-					(dt.refobjid = t.oid) ) AND (t.relnamespace = nt.oid) ) AND (t.relkind = ANY (ARRAY['r'::"char", 'v'::"char"])) ) AND
+											(((nv.oid = v.relnamespace) AND (v.relkind = 'v'::"char")) AND (v.oid = dv.refobjid)) AND (
+												dv.refclassid = ('pg_class'::REGCLASS)::OID ) ) AND (
+											dv.classid = ('pg_rewrite'::REGCLASS)::OID ) ) AND (dv.deptype = 'i'::"char") ) AND (
+									dv.objid = dt.objid ) ) AND (dv.refobjid <> dt.refobjid) ) AND (
+							dt.classid = ('pg_rewrite'::REGCLASS)::OID ) ) AND (dt.refclassid = ('pg_class'::REGCLASS)::OID) ) AND (
+					dt.refobjid = t.oid ) ) AND (t.relnamespace = nt.oid) ) AND (t.relkind = ANY (ARRAY['r'::"char", 'v'::"char"])) ) AND
 		pg_has_role(t.relowner, 'USAGE'::TEXT) )
 ORDER BY (current_database())::information_schema.sql_identifier,
 	(nv.nspname)::information_schema.sql_identifier,

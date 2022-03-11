@@ -24,11 +24,13 @@ begin
     where another_column > a_constant;
     another statement containing the word exception, which has no meaning here;
 exception
-    when not found then raise notice 'not found';
-    insert into some_schema.some_table(a_column, another_column, reason, create_timestamp)
-        values (-1, 'this value is wrong', $text$the value was not found$text$, current_timestamp);
-    return -1;
-    when other then raise notice $msg$something went very wriong$msg$;
-    return -2;
+    when not found then
+        raise notice 'not found';
+        insert into some_schema.some_table(a_column, another_column, reason, create_timestamp)
+            values (-1, 'this value is wrong', $text$the value was not found$text$, current_timestamp);
+        return -1;
+    when other     then
+        raise notice $msg$something went very wriong$msg$;
+        return -2;
 end;
 $do$;

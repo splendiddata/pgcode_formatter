@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -52,14 +52,11 @@ public class TestOperationsOverlapping {
                 { "select ARRAY[1.1,2.1,3.1]::int[] = ARRAY[1,2,3]", "select ARRAY[1.1, 2.1, 3.1]::int[] = ARRAY[1, 2, 3]"},
                 { "select v||'a', case when v||'a' = 'aa' then 1 else 0 end, count(*) from unnest(array['a','b']) u(v) group by v||'a' order by 1",
                   // expected
-                  "select v||'a'\n" + 
-                  "     , case when v||'a' = 'aa' then 1\n" + 
-                  "       else 0\n" + 
-                  "       end\n" + 
-                  "     , count(*)\n" + 
-                  "from unnest(array['a', 'b']) u(v)\n" + 
-                  "group by v||'a'\n" + 
-                  "order by 1" }
+                  "select v||'a', case when v||'a' = 'aa' then 1 else 0 end\n"
+                  + "     , count(*)\n"
+                  + "from unnest(array['a', 'b']) u(v)\n"
+                  + "group by v||'a'\n"
+                  + "order by 1" }
                 // @formatter:on
         };
     }

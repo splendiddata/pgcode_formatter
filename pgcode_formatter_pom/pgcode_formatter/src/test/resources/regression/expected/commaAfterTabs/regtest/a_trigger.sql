@@ -6,7 +6,7 @@ BEGIN
 	SELECT
 		*
 		FROM
-		NOTHING;
+			NOTHING;
 END;
 $$
 LANGUAGE 'plpgsql';

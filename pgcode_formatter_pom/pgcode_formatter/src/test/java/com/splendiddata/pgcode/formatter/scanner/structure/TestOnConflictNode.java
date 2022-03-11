@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -67,11 +67,11 @@ public class TestOnConflictNode {
             RenderResult renderResult = onConflict.beautify(new FormatContext(config, null), null, config);
             output = renderResult.beautify();
             Assertions.assertEquals(
-                    "on conflict ( one_key_column, another_KEY_column\n" + 
-                    "            , a_third_key_column\n" + 
-                    "            , \"and even e Fourth key column\" )\n" + 
-                    "    do update set SOME_COLUMN_WITH_A_LONG_NAME = excluded.some_column_with_a_long_name\n" + 
-                    "                , another_column_with_a_long_name = eXcluded.another_column_with_a_long_name",
+                    "on conflict ( one_key_column, another_KEY_column\n"
+                    + "            , a_third_key_column, \"and even e Fourth key column\" )\n"
+                    + "    do update\n"
+                    + "           set SOME_COLUMN_WITH_A_LONG_NAME = excluded.some_column_with_a_long_name\n"
+                    + "             , another_column_with_a_long_name = eXcluded.another_column_with_a_long_name",
                     output);
         } catch (Exception e) {
             log.error("onConflictDoUpdate()", e);
@@ -90,9 +90,11 @@ public class TestOnConflictNode {
             RenderResult renderResult = onConflict.beautify(new FormatContext(config, null), null, config);
             output = renderResult.beautify();
             Assertions.assertEquals(
-                    "on conflict on constraint prim_key\n" + 
-                    "    do update set SOME_COLUMN_WITH_A_LONG_NAME = excluded.some_column_with_a_long_name\n" + 
-                    "                , another_column_with_a_long_name = eXcluded.another_column_with_a_long_name where prim_key > 12345",
+                    "on conflict on constraint prim_key\n"
+                    + "    do update\n"
+                    + "           set SOME_COLUMN_WITH_A_LONG_NAME = excluded.some_column_with_a_long_name\n"
+                    + "             , another_column_with_a_long_name = eXcluded.another_column_with_a_long_name\n"
+                    + "           where prim_key > 12345",
                     output);
         } catch (Exception e) {
             log.error("onConflictOnConstraint()", e);

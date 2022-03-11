@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -22,8 +19,8 @@ import java.util.function.Predicate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.splendiddata.pgcode.formatter.ConfigUtil;
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
-import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.IntegerValueOption;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
 import com.splendiddata.pgcode.formatter.internal.RenderMultiLines;
@@ -43,6 +40,8 @@ public class SelectStatement extends SrcNode implements WantsNewlineBefore {
     private InParentheses distinctList;
     private CommaSeparatedList targetList;
     private IntoClauseNode intoClause;
+
+    private int singleLineLength;
 
     /**
      * Constructor
@@ -188,88 +187,88 @@ public class SelectStatement extends SrcNode implements WantsNewlineBefore {
                 }
                 if (currentNode.is(ScanResultType.IDENTIFIER)) {
                     switch (currentNode.toString().toLowerCase()) {
-                        case "from":
-                            lastInterpreted = new FromClause(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("from list = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "where":
-                            lastInterpreted = new WhereConditionNode(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("where condition = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "group":
-                            lastInterpreted = new GroupByClause(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("group by list = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "having":
-                            lastInterpreted = new HavingClause(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("having clause = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "window":
-                            lastInterpreted = new WindowClause(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("window clause = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "union":
-                        case "intersect":
-                        case "except":
-                            lastInterpreted = new UnionClauseNode(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("union clause = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "order":
-                            lastInterpreted = new OrderByClause(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("order by list = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "limit":
-                            lastInterpreted = new LimitClause(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("limit clause = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "offset":
-                            lastInterpreted = new OffsetClause(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("offset clause = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "fetch":
-                            lastInterpreted = new FetchClause(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("fetch clause = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "into":
-                            intoClause = new IntoClauseNode(currentNode);
-                            lastInterpreted = intoClause;
-                            if (log.isTraceEnabled()) {
-                                log.trace("into clause = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        case "for":
-                            lastInterpreted = new ForUpdateClause(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("for clause = <" + lastInterpreted + ">");
-                            }
-                            break;
-                        default:
-                            lastInterpreted = PostgresInputReader.interpretStatementBody(currentNode);
-                            if (log.isTraceEnabled()) {
-                                log.trace("something else = " + lastInterpreted.getClass().getSimpleName() + " <"
-                                        + lastInterpreted + ">");
-                            }
-                            break;
+                    case "from":
+                        lastInterpreted = new FromClause(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("from list = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "where":
+                        lastInterpreted = new WhereConditionNode(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("where condition = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "group":
+                        lastInterpreted = new GroupByClause(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("group by list = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "having":
+                        lastInterpreted = new HavingClause(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("having clause = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "window":
+                        lastInterpreted = new WindowClause(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("window clause = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "union":
+                    case "intersect":
+                    case "except":
+                        lastInterpreted = new UnionClauseNode(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("union clause = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "order":
+                        lastInterpreted = new OrderByClause(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("order by list = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "limit":
+                        lastInterpreted = new LimitClause(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("limit clause = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "offset":
+                        lastInterpreted = new OffsetClause(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("offset clause = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "fetch":
+                        lastInterpreted = new FetchClause(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("fetch clause = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "into":
+                        intoClause = new IntoClauseNode(currentNode);
+                        lastInterpreted = intoClause;
+                        if (log.isTraceEnabled()) {
+                            log.trace("into clause = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    case "for":
+                        lastInterpreted = new ForUpdateClause(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("for clause = <" + lastInterpreted + ">");
+                        }
+                        break;
+                    default:
+                        lastInterpreted = PostgresInputReader.interpretStatementBody(currentNode);
+                        if (log.isTraceEnabled()) {
+                            log.trace("something else = " + lastInterpreted.getClass().getSimpleName() + " <"
+                                    + lastInterpreted + ">");
+                        }
+                        break;
                     }
                     priorNode.setNext(lastInterpreted);
                 } else {
@@ -302,53 +301,64 @@ public class SelectStatement extends SrcNode implements WantsNewlineBefore {
     @Override
     public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
-        if (parentResult != null && config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()
-                && !parentResult.isLastNonWhiteSpaceEqualToLinefeed()) {
-            parentResult.addLine();
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
+        }
+        int parentPosition = 0;
+        if (parentResult != null) {
+            if (config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()
+                    && !parentResult.isLastNonWhiteSpaceEqualToLinefeed()) {
+                parentResult.addLine();
+            }
+            parentPosition = parentResult.getPosition();
         }
         int availableWidth = formatContext.getAvailableWidth();
-        boolean majorKeywordsOnSeparateLine = config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue();
-        IntegerValueOption queryWidthSetting = config.getQueryConfig().getMaxSingleLineQuery();
         boolean doIndent = config.getQueryConfig().isIndent().booleanValue();
-        String standardIndent = FormatContext.indent(true);
-
+        FormatContext targetListContext = new FormatContext(config, formatContext)
+                .setCommaSeparatedListGrouping(config.getTargetListGrouping());
         /*
          * First try to render it on the current line.
          */
-        FormatContext targetListContext = new FormatContext(config, formatContext);
-        targetListContext.setCommaSeparatedListGrouping(config.getTargetListGrouping());
-        if (!majorKeywordsOnSeparateLine) {
-            RenderMultiLines result = new RenderMultiLines(this, formatContext);
+        if (singleLineLength == 0) {
+            singleLineLength = getSingleLineWidth(config);
+        }
+        if (singleLineLength > 0 && singleLineLength <= formatContext.getAvailableWidth()
+                && singleLineLength <= config.getQueryConfig().getMaxSingleLineQuery().getValue()) {
+            renderResult = new RenderMultiLines(this, formatContext, parentResult);
             int maxWidth = availableWidth;
-            if (maxWidth > queryWidthSetting.getValue()) {
-                maxWidth = queryWidthSetting.getValue();
+            if (maxWidth > config.getQueryConfig().getMaxSingleLineQuery().getValue()) {
+                maxWidth = config.getQueryConfig().getMaxSingleLineQuery().getValue();
             }
             formatContext.setAvailableWidth(maxWidth);
-            for (ScanResult current = getStartScanResult(); current != null && result.getHeight() <= 1; current = current.getNext()) {
+            for (ScanResult current = getStartScanResult(); current != null
+                    && renderResult.getHeight() <= 1; current = current.getNext()) {
                 if (current == targetList || current == distinctList) {
-                    result.addRenderResult(
-                            current.beautify(targetListContext.setAvailableWidth(availableWidth - result.getPosition()),
-                                    result, config),
+                    renderResult.addRenderResult(
+                            current.beautify(targetListContext.setAvailableWidth(availableWidth - renderResult.getPosition()),
+                                    renderResult, config),
                             formatContext);
                 } else {
-                    result.addRenderResult(
-                            current.beautify(formatContext.setAvailableWidth(availableWidth - result.getPosition()),
-                                    result, config),
+                    renderResult.addRenderResult(
+                            current.beautify(formatContext.setAvailableWidth(availableWidth - renderResult.getPosition()),
+                                    renderResult, config),
                             formatContext);
                 }
             }
-            if (result.getHeight() == 1 && result.getWidth() <= maxWidth) {
+            if (renderResult.getHeight() == 1 && renderResult.getWidth() <= maxWidth) {
                 formatContext.setAvailableWidth(availableWidth);
-                return result;
+                return cacheRenderResult(renderResult, formatContext, parentResult);
             }
         }
 
         /*
          * Rendering on a single line didn't work out, so let's render multiline
          */
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
-        if (!doIndent) {
-            result.setIndent(0);
+        renderResult = new RenderMultiLines(this, formatContext, parentResult).setIndentBase(parentPosition);
+        if (doIndent) {
+            renderResult.setIndent(config.getStandardIndent());
+        } else {
+            renderResult.setIndent(0);
         }
 
         ScanResult current = getStartScanResult();
@@ -370,42 +380,89 @@ public class SelectStatement extends SrcNode implements WantsNewlineBefore {
                 }
                 renderUntil = renderUntil.getNext();
                 for (; current != renderUntil; current = current.getNext()) {
-                    result.addRenderResult(current.beautify(formatContext, result, config), formatContext);
+                    renderResult.addRenderResult(current.beautify(formatContext, renderResult, config), formatContext);
                 }
             } else {
-                result.addRenderResult(current.beautify(formatContext, result, config), formatContext);
+                renderResult.addRenderResult(current.beautify(formatContext, renderResult, config), formatContext);
                 current = current.getNext();
             }
-            result.addLine();
+            renderResult.addLine();
         }
         for (; current != null; current = current.getNext()) {
             if (current == targetList || current == distinctList) {
-                result.addRenderResult(
-                        current.beautify(targetListContext.setAvailableWidth(availableWidth - result.getPosition()),
-                                result, config),
+                renderResult.addRenderResult(
+                        current.beautify(targetListContext.setAvailableWidth(availableWidth - renderResult.getPosition()),
+                                renderResult, config),
                         formatContext);
             } else if (current instanceof WantsNewlineBefore) {
-                result.addLine();
+                renderResult.addLine();
                 if (doIndent) {
-                    result.addRenderResult(
-                            current.beautify(formatContext.setAvailableWidth(availableWidth - standardIndent.length()),
-                                    result, config),
-                            formatContext);
+                    renderResult.addRenderResult(current.beautify(
+                            formatContext.setAvailableWidth(availableWidth - config.getStandardIndent()), renderResult,
+                            config), formatContext);
                 } else {
-                    result.addRenderResult(
-                            current.beautify(formatContext.setAvailableWidth(availableWidth - result.getPosition()),
-                                    result, config),
+                    renderResult.addRenderResult(
+                            current.beautify(formatContext.setAvailableWidth(availableWidth - renderResult.getPosition()),
+                                    renderResult, config),
                             formatContext);
                 }
             } else {
-                result.addRenderResult(
-                        current.beautify(formatContext.setAvailableWidth(availableWidth - result.getPosition()), result,
+                renderResult.addRenderResult(
+                        current.beautify(formatContext.setAvailableWidth(availableWidth - renderResult.getPosition()), renderResult,
                                 config),
                         formatContext);
             }
         }
 
         formatContext.setAvailableWidth(availableWidth);
-        return result;
+        return cacheRenderResult(renderResult, formatContext, parentResult);
     }
+
+    /**
+     * @see ScanResult#getSingleLineWidth(FormatConfiguration)
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        if (singleLineLength != 0) {
+            return singleLineLength;
+        }
+        if (config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()) {
+            singleLineLength = -1;
+            return singleLineLength;
+        }
+        /*
+         * First check if this statement contains any keyword that would force it to be rendered multi-line anyway.
+         */
+        ScanResult node = getStartScanResult();
+        if (config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()) {
+            node = getStartScanResult();
+            for (node = node.getNext(); node != null; node = node.getNext()) {
+                if (node instanceof IdentifierNode && !((IdentifierNode) node).isNotKeyword()
+                        && ConfigUtil.isMajorKeywords(((IdentifierNode) node).getIdentifier())) {
+                    singleLineLength = -1;
+                    return singleLineLength;
+                }
+            }
+        }
+        int nodeLength;
+        for (node = getStartScanResult(); node != null; node = node.getNext()) {
+            if (node == targetList) {
+                nodeLength = node.getSingleLineWidth(
+                        new FormatConfiguration(config).setCommaSeparatedListGrouping(config.getTargetListGrouping()));
+            } else {
+                nodeLength = node.getSingleLineWidth(config);
+            }
+            if (nodeLength < 0) {
+                singleLineLength = -1;
+                return singleLineLength;
+            }
+            singleLineLength += nodeLength;
+        }
+        if (singleLineLength > config.getQueryConfig().getMaxSingleLineQuery().getValue()
+                || singleLineLength > config.getLineWidth().getValue()) {
+            singleLineLength = -1;
+        }
+        return singleLineLength;
+    }
+
 }

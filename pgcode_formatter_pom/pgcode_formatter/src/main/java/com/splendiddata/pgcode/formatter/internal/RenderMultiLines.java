@@ -1,43 +1,66 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.internal;
 
-import java.util.LinkedList;
-import java.util.ListIterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.splendiddata.pgcode.formatter.FormatConfiguration;
-import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.TabsOrSpacesType;
 import com.splendiddata.pgcode.formatter.scanner.ScanResult;
 
 /**
  * Class for rendering result. It consists of one or more lines. A line is a string ended by a line separator string or
  * without a line separator string when it is the last one.
+ * 
+ * @author Splendid Data Product Development B.V.
+ * @since 0.1
  */
 public class RenderMultiLines implements RenderResult {
     private static final Logger log = LogManager.getLogger(RenderMultiLines.class);
-    private LinkedList<RenderResult> renderResults = new LinkedList<>();
-    private ScanResult startScanResult;
 
-    private int standardIndent = FormatContext.indent(true).length();
-    private boolean overrideFirstIndent;
+    /**
+     * Pattern to get trailing spaces in a separate group. After:
+     * 
+     * <pre>
+     * Matcher m = TRAILING_SPACES_PATTERN.matcher(some_line);
+     * m.matches();
+     * </pre>
+     * <ul>
+     * <li>m.group(1) will contain the line without trailing spaces (which may be an empty string)</li>
+     * <li>m.group(2) will contain the trailing spaces (or an empty string if there were'nt any)</li>
+     * </ul>
+     */
+    private static final Pattern TRAILING_SPACES_PATTERN = Pattern.compile("^(.*?)(\\s*)$");
+    private static final Pattern LEADING_SPACES_PATTERN = Pattern.compile("^(\\s*)(\\S.*)?$");
+    private static final Pattern FIRST_LAST_LINES_SEPARATE_PATTERN = Pattern.compile("^([^\\n]*)\\n(.*?)([^\\n]*)$",
+            Pattern.DOTALL);
+    private static final Pattern LAST_LINE_SEPARATE_PATTERN = Pattern.compile("^(.*?)\\n([^\\n]*)$", Pattern.DOTALL);
+
+    private int indent;
+    private int indentBase;
+
+    private final RenderMultiLines parentResult;
+
+    private StringBuilder buffer;
+    private StringBuilder lastLine;
+    private int height;
+    private int width;
+    private int preserveLineFeedPosition;
+    private int previousEolPosition = -1;;
 
     /**
      * Constructor.
@@ -47,9 +70,18 @@ public class RenderMultiLines implements RenderResult {
      *            RenderMultiLines result. It can be null.
      * @param context
      *            The FormatContext that will be used
+     * @param parentResult
+     *            The RenderMultiLines to which this result will be added eventually. This may help getting the
+     *            indenting right when a block of code needs to be aligned to itself. <br>
+     *            May be null.
      */
-    public RenderMultiLines(ScanResult scanResult, FormatContext context) {
-        this.startScanResult = scanResult;
+    public RenderMultiLines(ScanResult scanResult, FormatContext context, RenderMultiLines parentResult) {
+        this.parentResult = parentResult;
+        lastLine = new StringBuilder(200);
+        if (parentResult != null) {
+            indentBase = parentResult.indentBase;
+            indent = parentResult.indent;
+        }
     }
 
     /**
@@ -60,59 +92,14 @@ public class RenderMultiLines implements RenderResult {
     public RenderMultiLines clone() {
         try {
             RenderMultiLines clone = (RenderMultiLines) super.clone();
-            clone.renderResults = new LinkedList<>();
-            for (RenderResult renderResult : renderResults) {
-                clone.renderResults.add(renderResult.clone());
+            if (this.buffer != null) {
+                clone.buffer = new StringBuilder(this.buffer);
             }
+            clone.lastLine = new StringBuilder(this.lastLine);
             return clone;
         } catch (CloneNotSupportedException e) {
             log.error("clone()", e);
             throw new RuntimeException("Clone after all not supported by RenderMultiLines", e);
-        }
-    }
-
-    @Override
-    public ScanResult getStartScanResult() {
-        return startScanResult;
-    }
-
-    /**
-     * Returns the renderResults.
-     * 
-     * @return The renderResults.
-     */
-    public LinkedList<RenderResult> getRenderResults() {
-        return renderResults;
-    }
-
-    /**
-     * Appends the specified element to the end of this list.
-     * 
-     * @param e
-     *            The element to be appended to this list.
-     */
-    public void putRenderResult(RenderResult e) {
-        if (e == null) {
-            throw new IllegalArgumentException("putRenderResult(e=null)->e is not allowed to be null");
-        }
-        log.trace(() -> "putRenderResult(e=" + e + ")");
-        renderResults.add(e);
-    }
-
-    /**
-     * Appends the specified element to the end of the renderResults list if is not a linefeed.
-     * 
-     * @param e
-     *            The element to be appended to the renderResults list.
-     */
-    private void addToResults(RenderResult e) {
-        if (e != null) {
-            if (RenderItemType.WHITESPACE.equals(e.getRenderItemType())
-                    || RenderItemType.LINEFEED.equals(e.getRenderItemType())) {
-                this.addWhiteSpaceIfApplicable();
-            } else {
-                renderResults.add(e);
-            }
         }
     }
 
@@ -121,33 +108,80 @@ public class RenderMultiLines implements RenderResult {
      * {@link RenderResult} which can be a RenderItem or a RenderMultiLines child. This way the render results of an sql
      * statement are nested (this depends of course on the format configuration).
      *
-     * @param e
+     * @param toAdd
      *            The element that has to be added to the multi lines result.
      * @param formatContext
      *            A FormatContext.
      * @return RenderMultiLines this
+     * @throws IllegalStateException
+     *             when invoked after invocation of {@link #beautify()}
      */
-    public RenderMultiLines addRenderResult(RenderResult e, FormatContext formatContext) {
-        if (e != null) {
-            RenderResult toAdd = e;
-            if (toAdd instanceof RenderMultiLines) {
-                ((RenderMultiLines) toAdd).indent(standardIndent, formatContext.getConfig());
-                addToResults(toAdd);
+    public RenderMultiLines addRenderResult(RenderResult toAdd, FormatContext formatContext) {
+        if (lastLine == null) {
+            throw new IllegalStateException("addRenderResult() invoked after beautify()");
+        }
+        if (toAdd == null) {
+            return this;
+        }
+        if (height == 0) {
+            height = 1;
+        }
+        if (width < toAdd.getWidth()) {
+            width = toAdd.getWidth();
+        }
+        String resultToAdd = toAdd.beautify();
+        if (resultToAdd.isBlank()) {
+            /*
+             * When the RenderResult toAdd only consists of whitespace, then a single space character is added to the
+             * current line if it didn't already end in a space character.
+             */
+            if (lastLine.length() > 0 && lastLine.charAt(lastLine.length() - 1) != ' ') {
+                lastLine.append(' ');
+            }
+        } else {
+            previousEolPosition = -1;
+            if (toAdd.getHeight() <= 1) {
+                lastLine.append(resultToAdd);
             } else {
-                if (!(toAdd instanceof RenderItem && ((RenderItem) toAdd).getNonBreakableText().length() == 0)) {
-                    if (RenderItemType.LINEFEED.equals(toAdd.getRenderItemType()) && toAdd.getStartScanResult() != null
-                            && toAdd.getStartScanResult().isMandatoryLineFeed()) {
-                            addLine();
+                height += toAdd.getHeight() - 1;
+                Matcher m = FIRST_LAST_LINES_SEPARATE_PATTERN.matcher(resultToAdd);
+                if (m.matches()) {
+                    lastLine.append(m.group(1));
+                    if (lastLine.length() > width) {
+                        width = lastLine.length();
+                    }
+                    if (buffer == null) {
+                        buffer = new StringBuilder();
                     } else {
-                        addToResults(toAdd);
+                        buffer.append('\n');
+                    }
+                    buffer.append(lastLine).append('\n').append(m.group(2));
+                    buffer.setLength(buffer.length() - 1); // Remove the last linefeed
+                    lastLine.setLength(0);
+                    lastLine.append(m.group(3));
+                    if (lastLine.length() == 0) {
+                        indentLastLine();
                     }
                 }
             }
         }
-        if (log.isDebugEnabled()) {
-            log.debug(new StringBuilder().append("addRenderResult, indent=").append(standardIndent).append(", caller=")
-                    .append(Thread.currentThread().getStackTrace()[2]).append(" =\n").append(this.beautify()));
+        return this;
+    }
+
+    public RenderMultiLines addEolComment(String text) {
+        if (lastLine == null) {
+            throw new IllegalStateException("addRenderResult() invoked after beautify()");
         }
+        if (previousEolPosition >= 0 && lastLine.toString().isBlank()) {
+            lastLine.setLength(0);
+            lastLine.append(Util.nSpaces(previousEolPosition));
+            previousEolPosition = -1;
+        }
+        int eolPosition = getPosition();
+        lastLine.append(text);
+        preserveLineFeedPosition = -1;
+        addLine();
+        previousEolPosition = eolPosition;
         return this;
     }
 
@@ -159,19 +193,18 @@ public class RenderMultiLines implements RenderResult {
      *         render result.
      */
     public int getPosition() {
-        int result = 0;
-        RenderResult last;
-        LinkedList<RenderItem> renderItems = getRenderItems();
-        ListIterator<RenderItem> listIterator = renderItems.listIterator(renderItems.size());
-        while (listIterator.hasPrevious()) {
-            last = listIterator.previous();
-            if (RenderItemType.LINEFEED.equals(last.getRenderItemType())) {
-                return result;
-            } else {
-                result += last.getWidth();
-            }
+        int parentPosition = 0;
+        if (height <= 1 && parentResult != null) {
+            parentPosition = parentResult.getPosition();
         }
-        return result;
+        if (lastLine == null) {
+            Matcher m = LAST_LINE_SEPARATE_PATTERN.matcher(buffer);
+            if (m.matches()) {
+                return parentPosition + m.group(2).length();
+            }
+            return parentPosition + buffer.length();
+        }
+        return parentPosition + lastLine.length();
     }
 
     /**
@@ -182,105 +215,88 @@ public class RenderMultiLines implements RenderResult {
      *            The spaces to use as indentation.
      */
     public void addLine(String indentation) {
-        if (renderResults.isEmpty()) {
-            putRenderResult(new RenderItem(Util.LF, RenderItemType.LINEFEED));
-            putRenderResult(new RenderItem(indentation, RenderItemType.WHITESPACE));
+        if (lastLine == null) {
+            throw new IllegalStateException("addLine(String) invoked after beautify()");
         }
-        if (isLastNonWhiteSpaceEqualToLinefeed()) {
-            RenderResult last = getLast();
-            if (RenderItemType.WHITESPACE.equals(last.getRenderItemType())) {
-                ((RenderItem) last).setNonBreakableText(indentation);
-            } else {
-                putRenderResult(new RenderItem(indentation, RenderItemType.WHITESPACE));
-            }
-        } else {
-            removeTrailingSpaces();
-            putRenderResult(new RenderItem(Util.LF, RenderItemType.LINEFEED));
-            putRenderResult(new RenderItem(indentation, RenderItemType.WHITESPACE));
-        }
+        addLine();
+        lastLine.setLength(0);
+        lastLine.append(indentation);
     }
 
     /**
-     * Add a new line RenderItem to the render result only if the last RenderItem is not a new line.
+     * Add a new line and indents it
+     * 
+     * @return RenderMultiLines this
      */
-    public void addLine() {
-        if (renderResults.isEmpty()) {
-            return;
+    public RenderMultiLines addLine() {
+        if (lastLine == null) {
+            throw new IllegalStateException("addLine() invoked after beautify()");
         }
-        if (isLastNonWhiteSpaceEqualToLinefeed()) {
-            RenderResult last = getLast();
-            if (RenderItemType.WHITESPACE.equals(last.getRenderItemType())) {
-                ((RenderItem) last).setNonBreakableText(Util.nSpaces(standardIndent));
-            } else {
-                putRenderResult(new RenderItem(Util.nSpaces(standardIndent), RenderItemType.WHITESPACE));
-            }
+        if (buffer == null) {
+            buffer = new StringBuilder();
+        } else if (previousEolPosition >= 0) {
+            // A newline character was already added because of end-of-line comment
+            previousEolPosition = -1;
         } else {
-            removeTrailingSpaces();
-            putRenderResult(new RenderItem(Util.LF, RenderItemType.LINEFEED));
-            putRenderResult(new RenderItem(Util.nSpaces(standardIndent), RenderItemType.WHITESPACE));
+            buffer.append('\n');
         }
+        /*
+         * Remove trailing spaces
+         */
+        Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
+        m.matches();
+        String line = m.group(1);
+        buffer.append(line);
+        if (preserveLineFeedPosition < 0) {
+            preserveLineFeedPosition = buffer.length();
+        }
+        if (line.length() > width) {
+            width = line.length();
+        }
+
+        lastLine.setLength(0);
+        indentLastLine();
+        if (height == 0) {
+            // Nothing has been added yet
+            height = 2;
+        } else {
+            height++;
+        }
+        return this;
+    }
+
+    /**
+     * Adds spaces to lastLine to indent it
+     */
+    private void indentLastLine() {
+        assert lastLine.length() == 0 : "The lastLine is supposed to be empty at indentLastLine(), but is <" + lastLine
+                + ">";
+        lastLine.append(Util.nSpaces(getTotalIndent()));
     }
 
     /**
      * Just adds a new line RenderItem to the render result.
      */
     public void addExtraLine() {
-        putRenderResult(new RenderItem(Util.LF, RenderItemType.LINEFEED));
-    }
-
-    /**
-     * Adds a new line RenderItem at the beginning of the render result
-     * 
-     * @param lineExists
-     *            Indicates that a line feed already exists in the result
-     * @return RenderResult this.
-     */
-    public RenderResult addLineAtStart(boolean lineExists) {
-        if (!lineExists) {
-            if (Util.isNullOrEmpty(this.renderResults)) {
-                putRenderResult(new RenderItem(Util.LF, RenderItemType.LINEFEED));
-            } else if (!RenderItemType.LINEFEED.equals(this.renderResults.getFirst().getRenderItemType())) {
-                this.renderResults.addFirst(new RenderItem(Util.LF, RenderItemType.LINEFEED));
-            }
+        if (lastLine == null) {
+            throw new IllegalStateException("addExtraLine() invoked after beautify()");
         }
-
-        return this;
-    }
-
-    /**
-     * It replaces the last white space or line feed {@link RenderItem} element of the RenderMultiLines result by the
-     * provided element. When the last element is not of type {@link RenderItem}, it searches recursively until the last
-     * {@link RenderItem} element is found.
-     * 
-     * @param e
-     *            The new element that will replace the last element.
-     */
-    public void replaceLast(RenderResult e) {
-        RenderResult last = renderResults.peekLast();
-        if (last != null) {
-            if (last instanceof RenderMultiLines) {
-                LinkedList<RenderItem> renderItems = last.getRenderItems();
-                RenderItem renderItem = renderItems.peekLast();
-                if (renderItem != null && (RenderItemType.LINEFEED.equals(renderItem.getRenderItemType()))
-                        || RenderItemType.WHITESPACE.equals(last.getRenderItemType())) {
-                    renderItems.removeLast();
-                    renderResults.add(e);
-                }
-            } else {
-                if (RenderItemType.LINEFEED.equals(last.getRenderItemType())
-                        || RenderItemType.WHITESPACE.equals(last.getRenderItemType())) {
-                    renderResults.removeLast();
-                    renderResults.add(e);
-                }
-            }
+        if (buffer == null) {
+            buffer = new StringBuilder();
         }
+        buffer.append(lastLine);
+        lastLine.setLength(0);
+        height++;
     }
 
     /**
      * Just adds a whitespace RenderItem to this RenderMultiLines result.
      */
     public void addWhiteSpace() {
-        renderResults.add(new RenderItem(Util.space, RenderItemType.WHITESPACE));
+        if (lastLine == null) {
+            throw new IllegalStateException("addWhiteSpace() invoked after beautify()");
+        }
+        lastLine.append(' ');
     }
 
     /**
@@ -288,92 +304,12 @@ public class RenderMultiLines implements RenderResult {
      * is not a line feed. White space will not be added when renderResults list is empty.
      */
     public void addWhiteSpaceIfApplicable() {
-        RenderResult last = getLast();
-
-        if (last != null && !RenderItemType.LINEFEED.equals(last.getRenderItemType())
-                && !RenderItemType.WHITESPACE.equals(last.getRenderItemType())) {
-            this.addWhiteSpace();
+        if (lastLine == null) {
+            throw new IllegalStateException("addWhiteSpaceIfApplicable() invoked after beautify()");
         }
-    }
-
-    /**
-     * Returns the last {@link RenderItem} element of this RenderMultiLines result.
-     * 
-     * @return the last {@link RenderItem} element or null if empty.
-     */
-    @Override
-    public RenderResult getLast() {
-        RenderResult last = this.renderResults.peekLast();
-        if (log.isTraceEnabled()) {
-            log.trace("getLast() -> first result = " + last);
+        if (lastLine.length() == 0 || !lastLine.substring(lastLine.length() - 1).isBlank()) {
+            lastLine.append(' ');
         }
-        if (last != null) {
-            if (last instanceof RenderItem) {
-                return last;
-            }
-            LinkedList<RenderItem> renderItems = last.getRenderItems();
-            if (renderItems != null && !renderItems.isEmpty()) {
-                last = renderItems.peekLast();
-                if (log.isTraceEnabled()) {
-                    log.trace("getLast() -> second result = " + last);
-                }
-            }
-        }
-
-        return last;
-    }
-
-    /**
-     * @see RenderResult#getFirst()
-     */
-    @Override
-    public RenderResult getFirst() {
-        RenderResult first = this.renderResults.peekFirst();
-
-        if (first != null) {
-            LinkedList<RenderItem> renderItems = first.getRenderItems();
-            first = renderItems.peekFirst();
-        }
-
-        return first;
-    }
-
-    /**
-     * Removes the first element of renderResults
-     */
-    public void removeFirst() {
-        this.renderResults.pollFirst();
-    }
-
-    /**
-     * Removes the last element of renderResults
-     */
-    public void removeLast() {
-        this.renderResults.pollLast();
-    }
-
-    /**
-     * Returns the last non white space, non linefeed and not a comment RenderItem element from renderResults.
-     * 
-     * @return The last element from renderResults that is not of type LINEFEED, WHITESPACE, COMMENT or COMMENT_LINE
-     */
-    public RenderResult getLastNonWhiteSpace() {
-        @SuppressWarnings("unchecked")
-        LinkedList<RenderResult> renderResultsTemp = (LinkedList<RenderResult>) this.renderResults.clone();
-
-        RenderResult last = renderResultsTemp.pollLast();
-        while (last != null && (RenderItemType.LINEFEED.equals(last.getRenderItemType())
-                || RenderItemType.WHITESPACE.equals(last.getRenderItemType())
-                || RenderItemType.COMMENT.equals(last.getRenderItemType())
-                || RenderItemType.COMMENT_LINE.equals(last.getRenderItemType()))) {
-            last = renderResultsTemp.pollLast();
-        }
-
-        while (last != null && (last instanceof RenderMultiLines)) {
-            last = ((RenderMultiLines) last).getLastNonWhiteSpace();
-        }
-
-        return last;
     }
 
     /**
@@ -381,82 +317,70 @@ public class RenderMultiLines implements RenderResult {
      */
     @Override
     public boolean isLastNonWhiteSpaceEqualToLinefeed() {
-        boolean result = false;
-
-        RenderItem current;
-        LinkedList<RenderItem> renderItems = getRenderItems();
-        ListIterator<RenderItem> listIterator = renderItems.listIterator(renderItems.size());
-        while (listIterator.hasPrevious()) {
-            current = listIterator.previous();
-            if (RenderItemType.LINEFEED.equals(current.getRenderItemType())) {
-                return true;
-            } else if (!RenderItemType.WHITESPACE.equals(current.getRenderItemType())) {
-                return false;
+        if (lastLine.toString().isBlank()) {
+            if (buffer == null && parentResult != null) {
+                return parentResult.isLastNonWhiteSpaceEqualToLinefeed();
             }
+            return true;
         }
-
-        return result;
-    }
-
-    /**
-     * Removes trailing line feed RenderItem elements from renderResults list.
-     */
-    public void removeTrailingLineFeeds() {
-        RenderResult last = renderResults.peekLast();
-        if (last != null) {
-            if (last instanceof RenderMultiLines) {
-                ((RenderMultiLines) last).removeTrailingLineFeeds();
-            } else {
-                boolean foundLinefeed = false;
-                boolean foundSomethingElse = false;
-                for (ListIterator<RenderResult> it = renderResults.listIterator(renderResults.size()); !foundLinefeed
-                        && !foundSomethingElse && it.hasPrevious();) {
-                    RenderResult item = it.previous();
-                    if (RenderItemType.LINEFEED.equals(item.getRenderItemType())) {
-                        foundLinefeed = true;
-                    } else if (!RenderItemType.WHITESPACE.equals(item.getRenderItemType())) {
-                        foundSomethingElse = true;
-                    }
-                }
-                if (foundLinefeed) {
-                    for (last = renderResults.peekLast(); RenderItemType.WHITESPACE.equals(last.getRenderItemType())
-                            || RenderItemType.LINEFEED
-                                    .equals(last.getRenderItemType()); last = renderResults.peekLast()) {
-                        renderResults.removeLast();
-                    }
-                }
-            }
-        }
-
+        return false;
     }
 
     /**
      * Removes last white space RenderItem elements from renderResults list.
      */
     public void removeTrailingSpaces() {
-        RenderResult last = renderResults.peekLast();
-
-        if (last != null && RenderItemType.WHITESPACE.equals(last.getRenderItemType())) {
-            renderResults.removeLast();
+        if (lastLine == null) {
+            throw new IllegalStateException("removeTrailingSpaces() invoked after beautify()");
         }
+        Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
+        m.matches();
+        lastLine.setLength(lastLine.length() - m.group(2).length());
     }
 
     /**
-     * Removes the leading white spaces from this RenderMultiLines result.
+     * Removes all trailing whitespace and possibly line feeds at the end of the content.
+     * <p>
+     * This might be handy to place a semi-colon directly after the last word in a statement instead of leaving it
+     * dangling.
+     * <p>
+     * When a preserveLinefeedPosition is hit (the end of end-of-line comment), then the carret position will be on an
+     * empty but indented line.
+     *
+     * @return RenderMultiLines this
      */
-    public void removeLeadingSpaces() {
-        RenderResult first = renderResults.peekFirst();
-
-        while (first != null && RenderItemType.WHITESPACE.equals(first.getRenderItemType())) {
-            renderResults.removeFirst();
-            first = renderResults.peekFirst();
-            if (first == null || !RenderItemType.WHITESPACE.equals(first.getRenderItemType())) {
-                return;
-            } else {
-                removeLeadingSpaces();
-            }
+    public RenderMultiLines positionAfterLastNonWhitespace() {
+        if (lastLine == null) {
+            throw new IllegalStateException("positionAfterLastNonWhitespace() invoked after beautify()");
         }
-
+        Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
+        if (m.matches() && m.group(1).length() > 0) {
+            lastLine.setLength(m.group(1).length());
+        } else if (buffer != null) {
+            if (preserveLineFeedPosition < -1) {
+                preserveLineFeedPosition = buffer.length();
+            }
+            if (preserveLineFeedPosition < buffer.length()) {
+                height--;
+                m = LAST_LINE_SEPARATE_PATTERN.matcher(buffer);
+                while (m.matches() && m.group(1).length() > preserveLineFeedPosition && m.group(2).isBlank()) {
+                    height--;
+                    buffer.setLength(m.group(1).length());
+                    m = LAST_LINE_SEPARATE_PATTERN.matcher(buffer);
+                }
+                lastLine.setLength(0);
+                if (m.matches()) {
+                    lastLine.append(m.group(2));
+                    buffer.setLength(m.group(1).length());
+                } else {
+                    lastLine = buffer;
+                    buffer = null;
+                }
+            }
+        } else {
+            lastLine.setLength(0);
+        }
+        return this;
     }
 
     /**
@@ -467,23 +391,6 @@ public class RenderMultiLines implements RenderResult {
      */
     @Override
     public int getHeight() {
-        int height = 0;
-        if (!Util.isNullOrEmpty(renderResults)) {
-            height++;
-        }
-
-        RenderItem current;
-        LinkedList<RenderItem> renderItems = getRenderItems();
-        ListIterator<RenderItem> listIterator = renderItems.listIterator();
-        while (listIterator.hasNext()) {
-            current = listIterator.next();
-            if (RenderItemType.LINEFEED.equals(current.getRenderItemType())) {
-                height++;
-            } else if (current instanceof FunctionDefinitionRenderItem) {
-                height += current.getHeight();
-            }
-        }
-
         return height;
     }
 
@@ -494,26 +401,15 @@ public class RenderMultiLines implements RenderResult {
      */
     @Override
     public int getWidth() {
-        int temp = 0;
-        int finalWidth = 0;
-
-        RenderItem current;
-        LinkedList<RenderItem> renderItems = getRenderItems();
-        ListIterator<RenderItem> listIterator = renderItems.listIterator();
-        while (listIterator.hasNext()) {
-            current = listIterator.next();
-            if (RenderItemType.LINEFEED.equals(current.getRenderItemType())) {
-                finalWidth = Math.max(temp, finalWidth);
-                // The indentation in a linefeed RenderItem should be added
-                // to the width of the following line
-                temp = 0;
-            } else {
-                temp += current.getWidth();
+        if (lastLine != null) {
+            Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
+            m.matches();
+            int actualWidth = m.group(1).length();
+            if (actualWidth > width) {
+                return actualWidth;
             }
         }
-
-        finalWidth = Math.max(temp, finalWidth);
-        return finalWidth;
+        return width;
     }
 
     /**
@@ -523,66 +419,16 @@ public class RenderMultiLines implements RenderResult {
      */
     @Override
     public int getWidthFirstLine() {
-        int result = 0;
-
-        RenderResult current;
-        LinkedList<RenderItem> renderItems = getRenderItems();
-        ListIterator<RenderItem> listIterator = renderItems.listIterator();
-        while (listIterator.hasNext()) {
-            current = listIterator.next();
-            if (RenderItemType.LINEFEED.equals(current.getRenderItemType())) {
-                return result;
-            } else {
-                result += current.getWidth();
-            }
+        if (buffer == null) {
+            Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
+            m.matches();
+            return m.group(1).length();
         }
-
-        return result;
-    }
-
-    /**
-     * Returns the width of the first RenderItem element from renderResults that is not a line feed and not a comment.
-     *
-     * @return The width of the first RenderItem element from renderResults that is not a line feed and not a comment.
-     */
-    public int getWidthFirstItem() {
-        int result = 0;
-
-        RenderResult current;
-        LinkedList<RenderItem> renderItems = getRenderItems();
-        ListIterator<RenderItem> listIterator = renderItems.listIterator();
-        while (listIterator.hasNext()) {
-            current = listIterator.next();
-            if (!RenderItemType.LINEFEED.equals(current.getRenderItemType())
-                    && !RenderItemType.COMMENT_LINE.equals(current.getRenderItemType())
-                    && !RenderItemType.COMMENT.equals(current.getRenderItemType())) {
-                return current.getWidth();
-            }
+        int widthFirstLine = buffer.indexOf("\n");
+        if (widthFirstLine < 0) {
+            return buffer.length();
         }
-
-        return result;
-    }
-
-    /**
-     * Returns the (nested) {@link RenderResult} constituents as list of {@link RenderItem} elements.
-     *
-     * @return A list of {@link RenderItem} elements.
-     */
-    public LinkedList<RenderItem> getRenderItems() {
-        LinkedList<RenderItem> result = new LinkedList<>();
-        RenderResult current;
-        ListIterator<RenderResult> listIterator = this.renderResults.listIterator();
-        while (listIterator.hasNext()) {
-            current = listIterator.next();
-            if (current instanceof RenderMultiLines) {
-                LinkedList<RenderItem> renderItems = current.getRenderItems();
-                result.addAll(renderItems);
-            } else {
-                result.add((RenderItem) current);
-            }
-        }
-
-        return result;
+        return widthFirstLine;
     }
 
     /**
@@ -592,14 +438,13 @@ public class RenderMultiLines implements RenderResult {
      */
     @Override
     public String toString() {
-        // beautified string
-        StringBuffer result = new StringBuffer();
-
-        for (RenderResult renderResult : renderResults) {
-            result.append(renderResult.beautify());
+        if (buffer == null) {
+            return lastLine.toString();
         }
-
-        return result.toString();
+        if (lastLine == null) {
+            return buffer.toString();
+        }
+        return new StringBuffer().append(buffer).append('\n').append(lastLine).toString();
     }
 
     /**
@@ -609,69 +454,21 @@ public class RenderMultiLines implements RenderResult {
      */
     @Override
     public String beautify() {
-        StringBuffer result = new StringBuffer();
-
-        for (RenderResult renderResult : renderResults) {
-            if (renderResult == null) {
-                log.error("beautify(): renderResult is null in " + renderResults);
-            } else {
-                log.trace(() -> "beautify(): append: " + renderResult.beautify());
-                result.append(renderResult.beautify());
+        if (lastLine == null) {
+            // Already beautified
+            if (buffer == null) {
+                // That's weird. There is nothing in here.
+                return "";
             }
+            return buffer.toString();
         }
-
-        return result.toString();
-    }
-
-    /**
-     * Indent this RenderResult using the indentation int. Or in other words: add a couple of spaces after each linefeed
-     * 
-     * @param indentation
-     *            The number of spaces to use for indentation
-     * @param config The format configuration
-     * @return The indented RenderResult.
-     */
-    private RenderMultiLines indent(int indentation, FormatConfiguration config) {
-        if (this.overrideFirstIndent) {
-            overrideFirstIndent = false;
-            return this;
+        Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
+        lastLine = null;
+        m.matches();
+        if (buffer == null) {
+            return m.group(1);
         }
-        if (indentation == 0 || this.renderResults.size() == 0) {
-            return this;
-        }
-
-        for (ListIterator<RenderItem> it = getRenderItems().listIterator(); it.hasNext();) {
-            RenderItem renderItem = it.next();
-            if (RenderItemType.LINEFEED.equals(renderItem.getRenderItemType())) {
-                if (it.hasNext()) {
-                    renderItem = it.next();
-                    if (RenderItemType.WHITESPACE.equals(renderItem.getRenderItemType())) {
-                        renderItem.setNonBreakableText(
-                                Util.nSpaces(indentation + renderItem.getNonBreakableText().length()));
-                    } else {
-                        it.previous();
-                        it.add(new RenderItem(Util.nSpaces(indentation), RenderItemType.WHITESPACE));
-                    }
-                } else {
-                    it.add(new RenderItem(Util.nSpaces(indentation), RenderItemType.WHITESPACE));
-                }
-            } else if (renderItem instanceof FunctionDefinitionRenderItem) {
-                if (config.isIndentInnerFunction()) {
-                    String nonBreakableText = renderItem.getNonBreakableText();
-                    if (config != null && TabsOrSpacesType.TABS.equals(config.getIndent().getTabsOrSpaces())) {
-                        Integer tabWidth = config.getTabs().getTabWidth();
-                        nonBreakableText = nonBreakableText.replaceAll("\n",
-                                "\n" + Util.nTabs(indentation / tabWidth) + Util.nSpaces(indentation % tabWidth));
-                    } else {
-                        nonBreakableText = nonBreakableText.replaceAll("\n", "\n" + Util.nSpaces(indentation));
-                    }
-                    renderItem.setNonBreakableText(nonBreakableText);
-                }
-                it.add(renderItem);
-            }
-        }
-
-        return this;
+        return buffer.append("\n").append(m.group(1)).toString();
     }
 
     /**
@@ -695,31 +492,35 @@ public class RenderMultiLines implements RenderResult {
      *            The position in the line to "tab" to
      */
     public void positionAt(int position) {
-        removeTrailingSpaces();
-        int currentPosition = getPosition();
-        if (position > 0) {
-            if (currentPosition >= position) {
-                addLine(Util.nSpaces(position));
-            } else {
-                renderResults.add(new RenderItem(Util.nSpaces(position - currentPosition), RenderItemType.WHITESPACE));
-            }
-        } else {
-            if (currentPosition > 0) {
-                addLine();
+        if (lastLine == null) {
+            throw new IllegalStateException("positionAt(int) invoked after beautify()");
+        }
+        int currentParentPosition = 0;
+        if (height <= 1 && parentResult != null) {
+            currentParentPosition = parentResult.getPosition();
+        }
+        int currentPosition = currentParentPosition + lastLine.length();
+        if (currentPosition > position) {
+            RenderMultiLines res = this;
+            while (res != null && currentPosition > position) {
+                Matcher m = TRAILING_SPACES_PATTERN.matcher(res.lastLine);
+                m.matches();
+                res.lastLine.setLength(m.group(1).length());
+                currentPosition = currentParentPosition + res.lastLine.length();
+                if (buffer != null || res.lastLine.length() > 0) {
+                    break;
+                }
+                res = res.parentResult;
+                if (res != null) {
+                    currentParentPosition = res.getPosition();
+                }
             }
         }
-    }
-
-    /**
-     * Sets the indent that will be implemented on each added result.
-     * 
-     * @param standardIndent
-     *            the standardIndent to set
-     * @return RenderMultiLines this
-     */
-    public RenderMultiLines setIndent(String standardIndent) {
-        this.standardIndent = standardIndent.length();
-        return this;
+        if (currentPosition < position) {
+            lastLine.append(Util.nSpaces(position - currentPosition));
+        } else if (currentPosition > position) {
+            addLine(Util.nSpaces(position));
+        }
     }
 
     /**
@@ -731,9 +532,24 @@ public class RenderMultiLines implements RenderResult {
      */
     public RenderMultiLines setIndent(int indent) {
         if (indent <= 0) {
-            standardIndent = 0;
+            this.indent = 0;
         } else {
-            standardIndent = indent;
+            this.indent = indent;
+        }
+        return this;
+    }
+
+    /**
+     * Adds the specified indent to the current indent
+     * 
+     * @param indent
+     *            the indent to add to the current indent setting
+     * @return RenderMultiLines this
+     */
+    public RenderMultiLines addIndent(int indent) {
+        this.indent += indent;
+        if (this.indent <= 0) {
+            this.indent = 0;
         }
         return this;
     }
@@ -743,18 +559,57 @@ public class RenderMultiLines implements RenderResult {
      *
      * @return int the standard indent
      */
-    public int getStandardIndent() {
-        return standardIndent;
+    public int getLocalIndent() {
+        return indent;
     }
 
     /**
-     * Asserts that the indentation as given to this object will not be altered when this RenderMultiLines is added into
-     * the total result via the {@link #addRenderResult(RenderResult, FormatContext)} method.
+     * Adds up the standardIndents of this RenderMultiLine and all its parents
      *
-     * @return RenderMultiLines this
+     * @return int the standardIndent of this RenderMultiLine plus the standardIndent of all parent RenderMultiLines
      */
-    public RenderMultiLines setOverrideIndent() {
-        this.overrideFirstIndent = true;
+    public int getTotalIndent() {
+        int totalIndent = indentBase + indent;
+        if (totalIndent < 0) {
+            totalIndent = 0;
+        }
+        return totalIndent;
+    }
+
+    /**
+     * Indicates that the last linefeed of this RenderMultiLines must not be removed.
+     * <p>
+     * This might be handy for end of line comment.
+     * 
+     * @return RenderMultiLines this
+     * @since 0.3
+     */
+    public RenderMultiLines preserveLineFeed() {
+        preserveLineFeedPosition = -1;
+        return this;
+    }
+
+    /**
+     * Returns the position in the line relative to which indents will be performed - the first non-space character
+     * position in the line.
+     *
+     * @return int the base indent
+     * @since 0.3
+     */
+    public int getIndentBase() {
+        return indentBase;
+    }
+
+    /**
+     * Overwrites the indentBase
+     *
+     * @param indentBase
+     *            The new indent base
+     * @return RenderMultiLines this
+     * @since 0.3
+     */
+    public RenderMultiLines setIndentBase(int indentBase) {
+        this.indentBase = indentBase;
         return this;
     }
 }

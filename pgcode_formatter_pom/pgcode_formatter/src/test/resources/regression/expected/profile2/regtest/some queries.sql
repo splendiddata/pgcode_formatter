@@ -8,18 +8,18 @@ SELECT
 		ELSE 'N'
 	END AS new_col
 	FROM
-	my_table;
+		my_table;
 
 SELECT DISTINCT ON
 	(a, b) a, b, c
 	FROM
-	d
+		d
 	ORDER BY
 		a, b, c;
 
 SELECT DISTINCT
 	a, b, b, c
 	FROM
-	d
+		d
 	ORDER BY
 		a, b, c;

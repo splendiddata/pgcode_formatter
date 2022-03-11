@@ -2,12 +2,12 @@ DO $$
 DECLARE
 	r   VARCHAR;
 BEGIN
-	 SELECT
+	SELECT
 		a
 		INTO
 			r
 		FROM
-		coord;
+			coord;
 	RAISE NOTICE 'Value: %', r;
 END
 $$;
@@ -26,26 +26,24 @@ DECLARE
 	some_variable INT := 0;
 	a_constant    CONSTANT TEXT := 'a default value';
 BEGIN
-	 SELECT
+	SELECT
 		a_column
 		FROM
-		some_schema.some_table
+			some_schema.some_table
 		INTO
 			some_variable
 		WHERE
 			another_column > a_constant;
 	another STATEMENT containing the word EXCEPTION, which has NO meaning here;
-EXCEPTION
-	WHEN NOT found THEN RAISE NOTICE 'not found';
-	INSERT INTO
-			some_schema.some_table(
-			a_column, another_column, reason,
-			create_timestamp
-			)
-		VALUES
-			(-1, 'this value is wrong', $text$the value was not found$text$, CURRENT_TIMESTAMP);
-	RETURN -1;
-	WHEN other THEN RAISE NOTICE $msg$something went very wriong$msg$;
-	RETURN -2;
+exception
+	when NOT found then
+		RAISE NOTICE 'not found';
+		INSERT INTO some_schema.some_table(a_column, another_column, reason, create_timestamp)
+			VALUES
+				(-1, 'this value is wrong', $text$the value was not found$text$, CURRENT_TIMESTAMP);
+		RETURN -1;
+	when other     then
+		RAISE NOTICE $msg$something went very wriong$msg$;
+		RETURN -2;
 END;
 $do$;

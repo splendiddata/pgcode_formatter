@@ -2,14 +2,13 @@ DO $$
 DECLARE
 	r   VARCHAR;
 BEGIN
-	 SELECT
+	SELECT
 		a
 		INTO
 			r
 		FROM
-		coord;
+			coord;
 	RAISE NOTICE 'Value: %', r;
 END
 $$
-LANGUAGE
-plpgsql;
+LANGUAGE plpgsql;

@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -33,8 +30,14 @@ import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
  * @author Splendid Data Product Development B.V.
  * @since 0.0.1
  */
+/**
+ * TODO Please insert some explanation here
+ *
+ * @author Splendid Data Product Development B.V.
+ * @since 0.1
+ */
 public class LoopNode extends SrcNode {
-
+    
     /**
      * Constructor
      *
@@ -44,7 +47,7 @@ public class LoopNode extends SrcNode {
     public LoopNode(ScanResult startNode) {
         super(ScanResultType.FOR_LOOP, PostgresInputReader.toIdentifier(startNode));
         assert "loop".equalsIgnoreCase(startNode.getText()) : "Expecting 'LOOP' but found: " + startNode.getText();
-
+        
         ScanResult lastInterpreted = getStartScanResult();
         ScanResult priorNode = lastInterpreted.locatePriorToNextInterpretable();
         ScanResult currentNode = priorNode.getNext();
@@ -72,36 +75,67 @@ public class LoopNode extends SrcNode {
     }
 
     /**
+     * @see SrcNode#getBeginEndLevel()
+     *
+     * @return int one less than that of the start node
+     */
+    @Override
+    public int getBeginEndLevel() {
+        /*
+         * LOOP increments the nesting level, but END LOOP decrements it. getBeginEndLevel() should return
+         * the level AFTER the node, so should return that of the start node minus 1.
+         */
+        return super.getBeginEndLevel() - 1;
+    }
+
+    /**
      * @see SrcNode#beautify(FormatContext, RenderMultiLines, FormatConfiguration)
      */
     @Override
-    public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult, FormatConfiguration config) {
-        String standardIndent = FormatContext.indent(true);
-        RenderMultiLines result = new RenderMultiLines(this, formatContext).setIndent(0);
+    public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
+            FormatConfiguration config) {
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
+        }
+        renderResult = new RenderMultiLines(this, formatContext, parentResult).setIndent(config.getStandardIndent());
         ScanResult node = getStartScanResult();
-        result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+        renderResult.addRenderResult(node.beautify(formatContext, renderResult, config), formatContext);
         for (node = node.getNext(); node != null
                 && !(node instanceof PlpgsqlCompoundStatementPart); node = node.getNext()) {
             if (!node.is(ScanResultType.WHITESPACE) && !node.is(ScanResultType.LINEFEED)) {
-                result.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
-                result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+                renderResult.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
+                renderResult.addRenderResult(node.beautify(formatContext, renderResult, config), formatContext);
             }
         }
         if (node != null) {
-            if (result.isLastNonWhiteSpaceEqualToLinefeed()) {
-                result.positionAt(standardIndent.length());
+            if (renderResult.isLastNonWhiteSpaceEqualToLinefeed()) {
+                renderResult.positionAt(renderResult.getIndentBase());
             } else {
-                result.addLine(standardIndent);
+                renderResult.addLine();
             }
-            result.addRenderResult(new RenderMultiLines(node, formatContext).addRenderResult(
-                    node.beautify(new FormatContext(config, formatContext)
-                            .setAvailableWidth(formatContext.getAvailableWidth() - standardIndent.length()), result, config),
-                    formatContext), formatContext);
+            renderResult
+                    .addRenderResult(node.beautify(
+                            new FormatContext(config, formatContext)
+                                    .setAvailableWidth(formatContext.getAvailableWidth() - config.getStandardIndent()),
+                            renderResult, config), formatContext);
         }
-        result.addLine();
+        renderResult.setIndent(0);
+        renderResult.addLine();
         for (node = node.getNextNonWhitespace(); node != null; node = node.getNext()) {
-            result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+            renderResult.addRenderResult(node.beautify(formatContext, renderResult, config), formatContext);
         }
-        return result;
+        return cacheRenderResult(renderResult, formatContext, parentResult);
     }
+
+    /**
+     * @see ScanResult#getSingleLineWidth(FormatConfiguration)
+     *
+     * @return -1 as a loop is a compound statement
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        return -1;
+    }
+
 }

@@ -88,48 +88,58 @@ public class TestCommaSeparatedList {
                 testList.beautify(formatContext,null, config).beautify(), Util.xmlBeanToString(csListConfig));
 
         maxSingleLineLength.setValue(100);
+        formatContext.setCommaSeparatedListGrouping(csListConfig);
         Assertions.assertEquals(
                 "'element 1', 'element 2'\n, 'element 3', 'element 4'\n, 'element 5', 'element 6'\n, 'element 7', 'element 8'\n, 'element 9', 'element 10'",
                 testList.beautify(formatContext, null, config).beautify(), Util.xmlBeanToString(csListConfig));
 
         maxSingleLineLength.setWeight(Float.valueOf(5));
+        formatContext.setCommaSeparatedListGrouping(csListConfig);
         Assertions.assertEquals(
                 "'element 1', 'element 2'\n, 'element 3', 'element 4'\n, 'element 5', 'element 6'\n, 'element 7', 'element 8'\n, 'element 9', 'element 10'",
                 testList.beautify(formatContext, null, config).beautify(), Util.xmlBeanToString(csListConfig));
 
         maxArgumentsPerGroup.setWeight(Float.valueOf(10));
+        formatContext.setCommaSeparatedListGrouping(csListConfig);
         Assertions.assertEquals(
                 "'element 1', 'element 2', 'element 3', 'element 4'\n, 'element 5', 'element 6', 'element 7', 'element 8'\n, 'element 9', 'element 10'",
                 testList.beautify(formatContext, null, config).beautify(), Util.xmlBeanToString(csListConfig));
 
+        maxSingleLineLength.setWeight(Float.valueOf(4));
         maxArgumentsPerGroup.setWeight(Float.valueOf(5));
         maxGroupLength.setValue(40);
+        formatContext.setCommaSeparatedListGrouping(csListConfig);
         Assertions.assertEquals(
                 "'element 1', 'element 2', 'element 3'\n, 'element 4', 'element 5', 'element 6'\n, 'element 7', 'element 8', 'element 9'\n, 'element 10'",
                 testList.beautify(formatContext, null, config).beautify(), Util.xmlBeanToString(csListConfig));
 
         maxGroupLength.setValue(70);
+        formatContext.setCommaSeparatedListGrouping(csListConfig);
         Assertions.assertEquals(
                 "'element 1', 'element 2', 'element 3', 'element 4'\n, 'element 5', 'element 6', 'element 7', 'element 8'\n, 'element 9', 'element 10'",
                 testList.beautify(formatContext, null, config).beautify(), Util.xmlBeanToString(csListConfig));
 
         indentType.setWeight(Float.valueOf(6));
+        formatContext.setCommaSeparatedListGrouping(csListConfig);
         Assertions.assertEquals(
                 "'element 1'\n, 'element 2'\n, 'element 3'\n, 'element 4'\n, 'element 5'\n, 'element 6'\n, 'element 7'\n, 'element 8'\n, 'element 9'\n, 'element 10'",
                 testList.beautify(formatContext, null, config).beautify(), Util.xmlBeanToString(csListConfig));
 
         maxArgumentsPerGroup.setWeight(Float.valueOf(6));
+        formatContext.setCommaSeparatedListGrouping(csListConfig);
         Assertions.assertEquals(
                 "'element 1', 'element 2', 'element 3', 'element 4'\n, 'element 5', 'element 6', 'element 7', 'element 8'\n, 'element 9', 'element 10'",
                 testList.beautify(formatContext, null, config).beautify(), Util.xmlBeanToString(csListConfig));
 
         maxGroupLength.setWeight(Float.valueOf(7));
+        formatContext.setCommaSeparatedListGrouping(csListConfig);
         Assertions.assertEquals(
                 "'element 1', 'element 2', 'element 3', 'element 4', 'element 5'\n, 'element 6', 'element 7', 'element 8', 'element 9', 'element 10'",
                 testList.beautify(formatContext, null, config).beautify(), Util.xmlBeanToString(csListConfig));
 
         maxGroupLength.setWeight(Float.valueOf(6));
         maxGroupLength.setValue(40);
+        formatContext.setCommaSeparatedListGrouping(csListConfig);
         Assertions.assertEquals(
                 "'element 1', 'element 2', 'element 3'\n, 'element 4', 'element 5', 'element 6'\n, 'element 7', 'element 8', 'element 9'\n, 'element 10'",
                 testList.beautify(formatContext, null, config).beautify(), Util.xmlBeanToString(csListConfig));

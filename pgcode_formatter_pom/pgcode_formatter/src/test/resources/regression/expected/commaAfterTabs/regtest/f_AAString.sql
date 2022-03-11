@@ -47,40 +47,40 @@ BEGIN
 	RAISE NOTICE 'f_AAString.....|begin';
 	-- country2012('Taylor Swift').val := 'Ours';
 	country2012.val := 'Ours';
-	INSERT INTO
-			tbl_country2012_l1 (arrIx, val)
+	INSERT INTO tbl_country2012_l1 (arrIx, val)
 		VALUES
 			('Taylor Swift', country2012.val)
 		ON CONFLICT
 			(arrIx)
-			DO UPDATE SET val = country2012.val;
+		DO UPDATE
+			   SET val = country2012.val;
 	-- country2012('Tim McGraw').val := 'Better Than I Used To Be';
 	country2012.val := 'Better Than I Used To Be';
-	INSERT INTO
-			tbl_country2012_l1 (arrIx, val)
+	INSERT INTO tbl_country2012_l1 (arrIx, val)
 		VALUES
 			('Tim McGraw', country2012.val)
 		ON CONFLICT
 			(arrIx)
-			DO UPDATE SET val = country2012.val;
+		DO UPDATE
+			   SET val = country2012.val;
 	-- country2012('Miranda Lambert').val := 'Over You';
 	country2012.val := 'Over You';
-	INSERT INTO
-			tbl_country2012_l1 (arrIx, val)
+	INSERT INTO tbl_country2012_l1 (arrIx, val)
 		VALUES
 			('Miranda Lambert', country2012.val)
 		ON CONFLICT
 			(arrIx)
-			DO UPDATE SET val = country2012.val;
+		DO UPDATE
+			   SET val = country2012.val;
 	-- country2012('Eric Church').val := 'Springsteen';
 	country2012.val := 'Springsteen';
-	INSERT INTO
-			tbl_country2012_l1 (arrIx, val)
+	INSERT INTO tbl_country2012_l1 (arrIx, val)
 		VALUES
 			('Eric Church', country2012.val)
 		ON CONFLICT
 			(arrIx)
-			DO UPDATE SET val = country2012.val;
+		DO UPDATE
+			   SET val = country2012.val;
 	--
 	--	key ORDER test
 	--
@@ -88,17 +88,17 @@ BEGIN
 		SELECT
 			min(arrIx)
 			FROM
-			tbl_country2012_l1
+				tbl_country2012_l1
 		);
 	v_n := 1;
 	WHILE (coalesce(l_idx, '') != '')
-		LOOP
+	LOOP
 		SELECT
 			tt.val
 			INTO STRICT
 				country2012
 			FROM
-			tbl_country2012_l1 tt
+				tbl_country2012_l1 tt
 			WHERE
 				arrIx = l_idx; -- RAISE NOTICE 'f_AAString.....| k ...
 		RAISE NOTICE 'f_AAString.....| key = % val = %', l_idx, country2012.val;
@@ -108,7 +108,7 @@ BEGIN
 			INTO STRICT
 				songlist_1
 			FROM
-			tbl_songlist_l2 tt
+				tbl_songlist_l2 tt
 			WHERE
 				arrIx = v_n; -- if (v_val <> songList(v_n)) then
 		IF (v_val <> songlist_1.val)
@@ -121,7 +121,7 @@ BEGIN
 			SELECT
 				arrIx
 				FROM
-				tbl_country2012_l1
+					tbl_country2012_l1
 				WHERE
 					arrIx > l_idx
 				ORDER BY
@@ -135,19 +135,19 @@ BEGIN
 	--
 	-- country2012('Taylor Swift').val := 'Begin Again';
 	country2012.val := 'Begin Again';
-	INSERT INTO
-			tbl_country2012_l1 (arrIx, val)
+	INSERT INTO tbl_country2012_l1 (arrIx, val)
 		VALUES
 			('Taylor Swift', country2012.val)
 		ON CONFLICT
 			(arrIx)
-			DO UPDATE SET val = country2012.val;
+		DO UPDATE
+			   SET val = country2012.val;
 	SELECT
 		tt.val
 		INTO STRICT
 			country2012_2
 		FROM
-		tbl_country2012_l1 tt
+			tbl_country2012_l1 tt
 		WHERE
 			arrIx = 'Taylor Swift'; -- if (country2012('Taylor Swift'). ...
 	IF (country2012_2.val <> 'Begin Again')
@@ -163,7 +163,7 @@ BEGIN
 		INTO STRICT
 			country2012_3
 		FROM
-		tbl_country2012_l1 tt
+			tbl_country2012_l1 tt
 		WHERE
 			arrIx = v_key; -- v_val := country2012(v_key).val; ...
 	v_val := country2012_3.val; -- Miranda search
@@ -172,7 +172,7 @@ BEGIN
 		INTO STRICT
 			country2012_4
 		FROM
-		tbl_country2012_l1 tt
+			tbl_country2012_l1 tt
 		WHERE
 			arrIx = 'Miranda Lambert'; -- if (country2012('Miranda Lambert ...
 	IF (country2012_4.val <> v_val)
@@ -186,20 +186,21 @@ BEGIN
 	--
 	v_key := 'Jimi';
 	BEGIN
-	
 		SELECT
 			tt.val
 			INTO STRICT
 				country2012_3
 			FROM
-			tbl_country2012_l1 tt
+				tbl_country2012_l1 tt
 			WHERE
 				arrIx = v_key; -- v_val := country2012(v_key).val; ...
 		v_val := country2012_3.val; -- Jimi search
 		v_ret := 0; -- should not get here ... should take no data found exception
 		RAISE NOTICE 'f_AAString.....|***(Severe) KEY Jimi MUST NOT be found.';
 	EXCEPTION
-		WHEN no_data_found THEN RAISE NOTICE 'f_AAString.....| good, Jimi was not found.';
+
+		WHEN no_data_found then
+			RAISE NOTICE 'f_AAString.....| good, Jimi was not found.';
 	END;
 	--
 	--	EXISTs test
@@ -208,12 +209,13 @@ BEGIN
 		SELECT
 			(
 				CASE count(*)
-				WHEN 0 then FALSE
-				ELSE TRUE
+				WHEN 0
+					then FALSE
+					ELSE TRUE
 				END
 				)
 			FROM
-			tbl_country2012_l1
+				tbl_country2012_l1
 			WHERE
 				arrIx = v_key
 		)
@@ -229,20 +231,21 @@ BEGIN
 	-- nt deviation
 	DELETE FROM tbl_songlist_l2 WHERE arrIx = 2; -- songlist.delete(2)
 	BEGIN
-	
 		SELECT
 			tt.val
 			INTO STRICT
 				songlist_5
 			FROM
-			tbl_songlist_l2 tt
+				tbl_songlist_l2 tt
 			WHERE
 				arrIx = 2; -- v_val := songList(2); -- no data ...
 		v_val := songlist_5.val; -- no data found on NT test.
 		v_ret := 0; -- should not get here ... should take no data found exception
 		RAISE NOTICE 'f_AAString.....|***(Severe) KEY 2 MUST NOT be found.';
 	EXCEPTION
-		WHEN no_data_found THEN RAISE NOTICE 'f_AAString.....| good, entry 2 was deleted.';
+
+		WHEN no_data_found then
+			RAISE NOTICE 'f_AAString.....| good, entry 2 was deleted.';
 	END;
 	--
 	--	COUNT test
@@ -251,7 +254,7 @@ BEGIN
 		SELECT
 			count(*)
 			FROM
-			tbl_country2012_l1
+				tbl_country2012_l1
 		);
 	IF (v_cnt <> 4)
 	THEN
@@ -266,7 +269,7 @@ BEGIN
 		SELECT
 			count(*)
 			FROM
-			tbl_country2012_l1
+				tbl_country2012_l1
 		);
 	IF (v_cnt <> 3)
 	THEN
@@ -280,7 +283,7 @@ BEGIN
 		SELECT
 			max(arrIx)
 			FROM
-			tbl_country2012_l1
+				tbl_country2012_l1
 		);
 	IF (v_key <> 'Taylor Swift')
 	THEN
@@ -292,13 +295,12 @@ BEGIN
 	--	REUSE test
 	--
 	BEGIN
-	
 		SELECT
 			tt.val
 			INTO STRICT
 				country2012_4
 			FROM
-			tbl_country2012_l1 tt
+				tbl_country2012_l1 tt
 			WHERE
 				arrIx = 'Miranda Lambert'; -- v_val := country2012('Miranda La ...
 		v_val := country2012_4.val; -- will be remembered from before when Miranda Lambert was a key
@@ -313,21 +315,21 @@ BEGIN
 	--	FUNCTION vs the key
 	--
 	BEGIN
-	-- country2012(upper('Toby Keith')).val := 'American Soldier'; -- oldie
+		-- country2012(upper('Toby Keith')).val := 'American Soldier'; -- oldie
 		country2012.val := 'American Soldier'; -- oldie
-		INSERT INTO
-				tbl_country2012_l1 (arrIx, val)
+		INSERT INTO tbl_country2012_l1 (arrIx, val)
 			VALUES
 				(upper('Toby Keith'), country2012.val)
 			ON CONFLICT
 				(arrIx)
-				DO UPDATE SET val = country2012.val;
+			DO UPDATE
+				   SET val = country2012.val;
 		SELECT
 			tt.val
 			INTO STRICT
 				country2012_6
 			FROM
-			tbl_country2012_l1 tt
+				tbl_country2012_l1 tt
 			WHERE
 				arrIx = upper('Toby Keith'); -- v_val := country2012(upper('Toby ...
 		v_val := country2012_6.val; -- upper function test
@@ -342,21 +344,21 @@ BEGIN
 	END;
 	--
 	BEGIN
-	-- country2012('Toby Keith').val := upper('American Soldier'); -- oldie
+		-- country2012('Toby Keith').val := upper('American Soldier'); -- oldie
 		country2012.val := upper ('American Soldier'); -- oldie
-		INSERT INTO
-				tbl_country2012_l1 (arrIx, val)
+		INSERT INTO tbl_country2012_l1 (arrIx, val)
 			VALUES
 				('Toby Keith', country2012.val)
 			ON CONFLICT
 				(arrIx)
-				DO UPDATE SET val = country2012.val;
+			DO UPDATE
+				   SET val = country2012.val;
 		SELECT
 			tt.val
 			INTO STRICT
 				country2012_7
 			FROM
-			tbl_country2012_l1 tt
+				tbl_country2012_l1 tt
 			WHERE
 				arrIx = 'Toby Keith'; -- v_val := country2012('Toby Keith ...
 		v_val := country2012_7.val;
@@ -376,17 +378,17 @@ BEGIN
 		SELECT
 			min(arrIx)
 			FROM
-			tbl_country2012_l1
+				tbl_country2012_l1
 		);
 	v_n := 1;
 	WHILE (coalesce(l_idx, '') != '')
-		LOOP
+	LOOP
 		SELECT
 			tt.val
 			INTO STRICT
 				country2012_8
 			FROM
-			tbl_country2012_l1 tt
+				tbl_country2012_l1 tt
 			WHERE
 				arrIx = l_idx; -- RAISE NOTICE 'f_AAString.....| k ...
 		RAISE NOTICE 'f_AAString.....| key = % val = %', l_idx, country2012_8.val;
@@ -394,7 +396,7 @@ BEGIN
 			SELECT
 				arrIx
 				FROM
-				tbl_country2012_l1
+					tbl_country2012_l1
 				WHERE
 					arrIx > l_idx
 				ORDER BY
@@ -410,41 +412,41 @@ BEGIN
 	v_val := 'Courtesy of Red, White and Blue';
 	-- country2012(v_key).val := v_val;
 	country2012.val := v_val;
-	INSERT INTO
-			tbl_country2012_l1 (arrIx, val)
+	INSERT INTO tbl_country2012_l1 (arrIx, val)
 		VALUES
 			(v_key, country2012.val)
 		ON CONFLICT
 			(arrIx)
-			DO UPDATE SET val = country2012.val;
+		DO UPDATE
+			   SET val = country2012.val;
 	v_key := 'Toby2';
 	v_val := 'How do you like me now';
 	-- country2012(v_key).val := v_val;
 	country2012.val := v_val;
-	INSERT INTO
-			tbl_country2012_l1 (arrIx, val)
+	INSERT INTO tbl_country2012_l1 (arrIx, val)
 		VALUES
 			(v_key, country2012.val)
 		ON CONFLICT
 			(arrIx)
-			DO UPDATE SET val = country2012.val;
+		DO UPDATE
+			   SET val = country2012.val;
 	v_key := 'Toby3';
 	v_val := 'American Soldier';
 	-- country2012(v_key).val := v_val;
 	country2012.val := v_val;
-	INSERT INTO
-			tbl_country2012_l1 (arrIx, val)
+	INSERT INTO tbl_country2012_l1 (arrIx, val)
 		VALUES
 			(v_key, country2012.val)
 		ON CONFLICT
 			(arrIx)
-			DO UPDATE SET val = country2012.val;
+		DO UPDATE
+			   SET val = country2012.val;
 	v_key := 'Toby2';
 	v_keyPrior := (
 		SELECT
 			last_value(arrIx) over (ORDER BY arrIx DESC)
 			FROM
-			tbl_country2012_l1
+				tbl_country2012_l1
 			WHERE
 				arrIx < v_key
 			LIMIT 1
@@ -455,13 +457,13 @@ BEGIN
 		INTO STRICT
 			country2012_9
 		FROM
-		tbl_country2012_l1 tt
+			tbl_country2012_l1 tt
 		WHERE
 			arrIx = (
 			SELECT
 				last_value(arrIx) over (ORDER BY arrIx DESC)
 				FROM
-				tbl_country2012_l1
+					tbl_country2012_l1
 				WHERE
 					arrIx < v_key
 				LIMIT 1
@@ -482,7 +484,7 @@ BEGIN
 		SELECT
 			arrIx
 			FROM
-			tbl_country2012_l1
+				tbl_country2012_l1
 			WHERE
 				arrIx > v_key
 			ORDER BY
@@ -495,13 +497,13 @@ BEGIN
 		INTO STRICT
 			country2012_10
 		FROM
-		tbl_country2012_l1 tt
+			tbl_country2012_l1 tt
 		WHERE
 			arrIx = (
 			SELECT
 				arrIx
 				FROM
-				tbl_country2012_l1
+					tbl_country2012_l1
 				WHERE
 					arrIx > v_key
 				ORDER BY
@@ -524,7 +526,7 @@ BEGIN
 		SELECT
 			count(*)
 			FROM
-			tbl_country2012_l1
+				tbl_country2012_l1
 		);
 	IF (v_cnt <> 0)
 	THEN
@@ -537,8 +539,10 @@ BEGIN
 	RAISE NOTICE 'f_AAString.....| exit with return val = %', v_ret;
 	RETURN v_ret;
 EXCEPTION
-	WHEN OTHERS THEN RAISE NOTICE 'ERROR f_AAString sqlerrm: %', sqlerrm;
-	RETURN 0; -- error
+
+	WHEN OTHERS THEN
+		RAISE NOTICE 'ERROR f_AAString sqlerrm: %', sqlerrm;
+		RETURN 0; -- error
 END; -- f_AAString
 $body$
 LANGUAGE plpgsql

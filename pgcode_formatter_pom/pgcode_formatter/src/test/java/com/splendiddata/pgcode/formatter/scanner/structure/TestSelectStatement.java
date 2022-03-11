@@ -44,8 +44,10 @@ public class TestSelectStatement {
                         + "  AND pg_catalog.pg_function_is_visible(p.oid) order by 1   -- comment before the semi colon \n  ;",
                 // expected 1
                 "select 'enough text to create some considerable length to make this statement a multiline statement'\n"
-                        + "from a\n" + "WHERE p.proname ~ '^(version)$' AND pg_catalog.pg_function_is_visible(p.oid)\n"
-                        + "order by 1 -- comment before the semi colon\n" + ";" },
+                + "from a\n"
+                + "WHERE p.proname ~ '^(version)$' AND pg_catalog.pg_function_is_visible(p.oid)\n"
+                + "order by 1 -- comment before the semi colon\n"
+                + ";" },
                 {
                         // input 2
                         "select a, b from some_table where a > b order by 1, 2 limit 10",
@@ -55,8 +57,7 @@ public class TestSelectStatement {
                         // input 3
                         "SELECT CASE WHEN (FALSE) THEN 0 WHEN (TRUE) THEN 2 END AS dummy1 FROM my_table;",
                         //expected 3
-                        "SELECT CASE WHEN (FALSE) THEN 0\n            WHEN (TRUE) THEN 2\n"
-                                + "       END AS dummy1\nFROM my_table;" },
+                        "SELECT CASE WHEN (FALSE) THEN 0 WHEN (TRUE) THEN 2 END AS dummy1\nFROM my_table;" },
                 {
                         // input 4
                         "select a, b, c, d, e, f, g, h, sum(i) from\ntbla, tblb    where a>b and c > d  group\nby a, b, c, d, e, f, g, h  \n"
@@ -90,14 +91,15 @@ public class TestSelectStatement {
                                 "group by employee.name, employee.salary;",
 
                         // expected
-                        "select employee.name AS col1\n" + 
-                        "     , max(employee.salary) as amount\n" + 
-                        "from ( select department.a\n" + 
-                        "            , cast (department.column2 AS integer) as column2\n" + 
-                        "            , department.column3 as column3\n" + 
-                        "       from department ) as dep\n" + 
-                        "where employee.salary < 2000 or (employee.salary = 5000 and employee.salary = 6000)\n" + 
-                        "group by employee.name, employee.salary;"
+                        "select employee.name AS col1\n"
+                        + "     , max(employee.salary) as amount\n"
+                        + "from (\n"
+                        + "     select department.a\n"
+                        + "          , cast (department.column2 AS integer) as column2\n"
+                        + "          , department.column3 as column3\n"
+                        + "     from department ) as dep\n"
+                        + "where employee.salary < 2000 or (employee.salary = 5000 and employee.salary = 6000)\n"
+                        + "group by employee.name, employee.salary;"
                 },
                 {
                         // input

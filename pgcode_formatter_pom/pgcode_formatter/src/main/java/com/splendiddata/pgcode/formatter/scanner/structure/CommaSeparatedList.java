@@ -1,24 +1,22 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -26,17 +24,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.StringFormatterMessageFactory;
 
+import com.splendiddata.pgcode.formatter.ConfigUtil;
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.BeforeOrAfterType;
-import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CommaSeparatedListGroupingType;
-import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CommaSeparatedListIndentOption;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CommaSeparatedListIndentType;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.IntegerValueOption;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.RenderItem;
 import com.splendiddata.pgcode.formatter.internal.RenderItemType;
 import com.splendiddata.pgcode.formatter.internal.RenderMultiLines;
-import com.splendiddata.pgcode.formatter.internal.RenderResult;
 import com.splendiddata.pgcode.formatter.internal.Util;
 import com.splendiddata.pgcode.formatter.scanner.ScanResult;
 import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
@@ -52,12 +48,10 @@ public class CommaSeparatedList extends SrcNode {
             StringFormatterMessageFactory.INSTANCE);
 
     private List<ListElement> elements;
-    private CommaSeparatedListGroupingType commaSeparatedListGrouping;
 
-    private int maxElementHeight = 0;
-    private int maxElementWidth = 0;
-    private int totalElementWidth = 0;
-    private List<RenderResult> renderedElements = null;
+    private int singleLineLength = 0;
+
+    private boolean parentIsParentheses;
 
     /**
      * Constructor Please invoke via {@link #ofDistinctElementTypes(ScanResult, Function)}
@@ -182,7 +176,7 @@ public class CommaSeparatedList extends SrcNode {
         ScanResult currentNode;
 
         if (firstElement != null) {
-            for (priorNode = firstElement.locatePriorToNextInterpretable(); ; priorNode = currentNode
+            for (priorNode = firstElement.locatePriorToNextInterpretable();; priorNode = currentNode
                     .locatePriorToNextInterpretable()) {
                 currentNode = priorNode.getNext();
                 if (currentNode == null || currentNode.isStatementEnd()
@@ -209,189 +203,186 @@ public class CommaSeparatedList extends SrcNode {
     @Override
     public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
-
-        if (commaSeparatedListGrouping == null) {
-            commaSeparatedListGrouping = formatContext.getCommaSeparatedListGrouping();
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
         }
-        IntegerValueOption maxSingleLineLength = commaSeparatedListGrouping.getMaxSingleLineLength();
-        IntegerValueOption maxGroupLength = commaSeparatedListGrouping.getMaxLengthOfGroup();
-        IntegerValueOption maxElementsPerGroup = commaSeparatedListGrouping.getMaxArgumentsPerGroup();
-        CommaSeparatedListIndentType indentValue = commaSeparatedListGrouping.getIndent();
-        int indent = 0;
-        switch (indentValue.getValue()) {
-        case DOUBLE_INDENTED:
-            indent = 2 * FormatContext.indent(true).length();
-            break;
-        case INDENTED:
-            indent = FormatContext.indent(true).length();
-            break;
-        case UNDER_FIRST_ARGUMENT:
-        default:
-            if (parentResult != null) {
-                indent = parentResult.getPosition();
-            }
-            break;
+        int parentPosition = 0;
+        if (parentResult != null) {
+            parentPosition = parentResult.getPosition();
         }
-        int availableWidth = formatContext.getAvailableWidth();
-        FormatContext elementContext = new FormatContext(config, formatContext);
-        elementContext.setCommaSeparatedListGrouping(config.getCommaSeparatedListGrouping());
-        if (BeforeOrAfterType.BEFORE.equals(commaSeparatedListGrouping.getCommaBeforeOrAfter())) {
-            elementContext.setAvailableWidth(availableWidth - 2); // room for ", "
-        } else {
-            elementContext.setAvailableWidth(availableWidth - 1); // room for just a comma
-        }
-        if (renderedElements == null) {
-            renderedElements = new ArrayList<>(getElements().size());
-            for (ListElement element : getElements()) {
-                renderedElements.add(element.beautify(elementContext, null, config));
-            }
-
-            for (RenderResult elementResult : renderedElements) {
-                int elementHeight = elementResult.getHeight();
-                int elementWidth = elementResult.getWidth();
-                if (elementHeight > maxElementHeight) {
-                    maxElementHeight = elementHeight;
-                }
-                if (elementWidth > maxElementWidth) {
-                    maxElementWidth = elementWidth;
-                }
-                totalElementWidth += elementWidth;
-            }
-        }
-
-        RenderMultiLines result;
-        if (maxElementHeight == 1) {
-            int totalSingleLineLength = totalElementWidth + 2 * (renderedElements.size() - 1);
-            if (renderedElements.size() <= 1
-                    || (totalSingleLineLength <= maxSingleLineLength.getValue()
-                            && maxSingleLineLength.getWeight().floatValue() > maxGroupLength.getWeight().floatValue()
-                            && maxSingleLineLength.getWeight().floatValue() >= indentValue.getWeight().floatValue()
-                            && (renderedElements.size() <= maxElementsPerGroup.getValue() || maxSingleLineLength
-                                    .getWeight().floatValue() > maxElementsPerGroup.getWeight().floatValue()))
-                    || (totalSingleLineLength > maxSingleLineLength.getValue()
-                            && totalSingleLineLength <= maxGroupLength.getValue()
-                            && maxGroupLength.getWeight().floatValue() >= maxSingleLineLength.getWeight().floatValue()
-                            && maxGroupLength.getWeight().floatValue() >= indentValue.getWeight().floatValue()
-                            && (renderedElements.size() <= maxElementsPerGroup.getValue() || maxGroupLength.getWeight()
-                                    .floatValue() > maxElementsPerGroup.getWeight().floatValue()))) {
-                /*
-                 * The list is small enough to be put into a single line result
-                 */
-                result = new RenderMultiLines(this, formatContext).setIndent(indent).setOverrideIndent();
-                boolean first = true;
-                for (RenderResult element : renderedElements) {
-                    if (first) {
-                        first = false;
-                    } else {
-                        result.removeTrailingSpaces();
-                        result.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
-                        result.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
+        IntegerValueOption maxLineLength = config.getLineWidth();
+        IntegerValueOption maxSingleLineLength = formatContext.getCommaSeparatedListGrouping().getMaxSingleLineLength();
+        IntegerValueOption maxGroupLength = formatContext.getCommaSeparatedListGrouping().getMaxLengthOfGroup();
+        IntegerValueOption maxElementsPerGroup = formatContext.getCommaSeparatedListGrouping()
+                .getMaxArgumentsPerGroup();
+        if (getElements().size() <= 1 || formatContext.getCommaSeparatedListGrouping().getIndent().getWeight()
+                .floatValue() < maxSingleLineLength.getWeight().floatValue()) {
+            int singleLineWidth = getSingleLineWidth(config);
+            if (singleLineWidth >= 0) {
+                boolean singleLineDecision = singleLineWidth + parentPosition <= maxLineLength.getValue();
+                float decisionWeight = singleLineDecision ? 0F : maxLineLength.getWeight().floatValue();
+                if (maxSingleLineLength.getWeight().floatValue() >= decisionWeight) {
+                    if (singleLineWidth > maxSingleLineLength.getValue()) {
+                        singleLineDecision = false;
+                        decisionWeight = maxSingleLineLength.getWeight().floatValue();
+                    } else if (decisionWeight < maxSingleLineLength.getWeight().floatValue()) {
+                        singleLineDecision = true;
+                        decisionWeight = maxSingleLineLength.getWeight().floatValue();
                     }
-                    result.addRenderResult(element, formatContext);
                 }
-                log.trace(() -> new StringBuilder().append("single line result <").append(this).append(">\nsettings=")
-                        .append(Util.xmlBeanToString(commaSeparatedListGrouping)).append(" result=\n")
-                        .append(result.beautify()));
-                return result;
+                if (maxGroupLength.getWeight().floatValue() >= decisionWeight) {
+                    if (singleLineWidth > maxGroupLength.getValue()) {
+                        singleLineDecision = false;
+                        decisionWeight = maxGroupLength.getWeight().floatValue();
+                    } else if (decisionWeight < maxGroupLength.getWeight().floatValue()) {
+                        singleLineDecision = true;
+                        decisionWeight = maxGroupLength.getWeight().floatValue();
+                    }
+                }
+                if (maxElementsPerGroup.getWeight().floatValue() >= decisionWeight) {
+                    if (getElements().size() > maxElementsPerGroup.getValue()) {
+                        singleLineDecision = false;
+                        decisionWeight = maxElementsPerGroup.getWeight().floatValue();
+                    } else if (decisionWeight < maxElementsPerGroup.getWeight().floatValue()) {
+                        singleLineDecision = true;
+                        decisionWeight = maxElementsPerGroup.getWeight().floatValue();
+                    }
+                }
+                if (singleLineDecision) {
+                    renderResult = new RenderMultiLines(this, formatContext, parentResult);
+                    boolean first = true;
+                    for (ListElement element : getElements()) {
+                        if (first) {
+                            first = false;
+                        } else {
+                            renderResult.removeTrailingSpaces();
+                            renderResult.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
+                            renderResult.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
+                        }
+                        renderResult.addRenderResult(element.beautify(formatContext, renderResult, config),
+                                formatContext);
+                    }
+                    if (renderResult.getHeight() <= 1) {
+                        return cacheRenderResult(renderResult, formatContext, parentResult);
+                    }
+                }
             }
+        }
 
+        if (formatContext.getCommaSeparatedListGrouping().getIndent().getWeight().floatValue() > maxElementsPerGroup
+                .getWeight().floatValue()
+                && formatContext.getCommaSeparatedListGrouping().getIndent().getWeight().floatValue() > maxGroupLength
+                        .getWeight().floatValue()) {
             /*
-             * All elements could be grouped on a single line, but the line would get too long. So the list will be
-             * split up in several lines, but the list elements will be grouped
+             * The indent value is more important then the maxElementsPerGroup value and the maxGroupLength value. So
+             * every element should start on a line of its own.
              */
-            if (maxGroupLength.getWeight().floatValue() >= maxElementsPerGroup.getWeight().floatValue()
-                    && maxGroupLength.getWeight().floatValue() >= indentValue.getWeight().floatValue()) {
-                result = new RenderMultiLines(this, formatContext).setIndent(indent).setOverrideIndent();
-                int elementsOnLine = 0;
-                for (RenderResult element : renderedElements) {
-                    if (elementsOnLine > 0 && (result.getPosition() + 2 + element.getWidth() >= maxGroupLength
-                            .getValue()
-                            || (maxGroupLength.getWeight().floatValue() == maxElementsPerGroup.getWeight().floatValue()
-                                    && elementsOnLine >= maxElementsPerGroup.getValue()))) {
-                        nextElementOnNextLine(result, formatContext);
-                        elementsOnLine = 0;
-                    }
-                    if (elementsOnLine != 0) {
-                        result.removeTrailingSpaces();
-                        result.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
-                        result.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
-                    }
-                    result.addRenderResult(element, formatContext);
-                    elementsOnLine++;
-                }
-                log.trace(() -> new StringBuilder().append("result group length <").append(this).append(">\nsettings=")
-                        .append(Util.xmlBeanToString(commaSeparatedListGrouping)).append(" result=\n")
-                        .append(result.beautify()));
-                return result;
-            }
-            if (maxElementsPerGroup.getWeight().floatValue() > maxGroupLength.getWeight().floatValue()
-                    && maxElementsPerGroup.getWeight().floatValue() >= indentValue.getWeight().floatValue()) {
-                result = new RenderMultiLines(this, formatContext).setIndent(indent).setOverrideIndent();
-                int elementsOnLine = 0;
-                for (RenderResult element : renderedElements) {
-                    if (elementsOnLine >= maxElementsPerGroup.getValue()) {
-                        nextElementOnNextLine(result, formatContext);
-                        elementsOnLine = 0;
-                    }
-                    if (elementsOnLine != 0) {
-                        result.removeTrailingSpaces();
-                        result.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
-                        result.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
-                    }
-                    result.addRenderResult(element, formatContext);
-                    elementsOnLine++;
-                }
-                log.trace(() -> new StringBuilder().append("result max elements per group <").append(this)
-                        .append(">\nsettings=").append(Util.xmlBeanToString(commaSeparatedListGrouping))
-                        .append(" result=\n").append(result.beautify()));
-                return result;
-            }
-        }
-
-        /*
-         * There are elements that need more that one line. So it is better to start every element on a line of its own.
-         */
-        result = new RenderMultiLines(this, formatContext).setIndent(indent).setOverrideIndent();
-        boolean first = true;
-        for (ScanResult element : getElements()) {
-            if (first) {
-                first = false;
-            } else {
-                nextElementOnNextLine(result, formatContext);
-            }
-            result.addRenderResult(element.beautify(formatContext, result, config), formatContext);
-        }
-
-        log.trace(() -> new StringBuilder().append("result all elements separate <").append(this).append(">\nsettings=")
-                .append(Util.xmlBeanToString(commaSeparatedListGrouping)).append(" result=\n")
-                .append(result.beautify()));
-        return result;
-    }
-
-    /**
-     * Places a comma at the end of the current line and adds a line feed or adds a line feed and a comma on the next
-     * line, depending on the commaBeforeOrAfter setting of the commaSeparatedListGrouping
-     *
-     * @param result
-     *            The render result that needs a new line and a comma
-     * @param formatContext
-     *            for rendering
-     */
-    private void nextElementOnNextLine(RenderMultiLines result, FormatContext formatContext) {
-        if (BeforeOrAfterType.BEFORE.equals(commaSeparatedListGrouping.getCommaBeforeOrAfter())) {
-            int indent = result.getStandardIndent();
-            if (CommaSeparatedListIndentOption.UNDER_FIRST_ARGUMENT
-                    .equals(commaSeparatedListGrouping.getIndent().getValue())) {
-                result.setIndent(indent - 2);
-            }
-            result.addLine();
-            result.setIndent(indent);
-            result.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
-            result.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
+            maxElementsPerGroup = ConfigUtil
+                    .copy(formatContext.getCommaSeparatedListGrouping().getMaxArgumentsPerGroup());
+            maxElementsPerGroup.setValue(1);
+            maxElementsPerGroup.setWeight(Float.MAX_VALUE);
         } else {
-            result.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
-            result.addLine();
+            int elementWidth;
+            for (ListElement element : getElements()) {
+                elementWidth = element.getSingleLineWidth(config);
+                if (elementWidth < 0) {
+                    /*
+                     * At least one element cannot be rendered on a single line, so every element should start on a line
+                     * of its own
+                     */
+                    maxElementsPerGroup = ConfigUtil
+                            .copy(formatContext.getCommaSeparatedListGrouping().getMaxArgumentsPerGroup());
+                    maxElementsPerGroup.setValue(1);
+                    maxElementsPerGroup.setWeight(Float.MAX_VALUE);
+                    break;
+                }
+            }
         }
+
+        int indentBase = 0;
+        if (parentResult != null) {
+            indentBase = parentResult.getIndentBase();
+        }
+        int newLinePosition = 0;
+        int elementsOnLine = 0;
+        CommaSeparatedListIndentType indentValue = formatContext.getCommaSeparatedListGrouping().getIndent();
+        if (parentIsParentheses) {
+            /*
+             * The surrounding InParentheses will decide where the elements will be placed.
+             */
+            newLinePosition = parentPosition;
+        } else {
+            switch (indentValue.getValue()) {
+            case DOUBLE_INDENTED:
+                newLinePosition = indentBase + 2 * config.getStandardIndent();
+                break;
+            case INDENTED:
+                newLinePosition = indentBase + config.getStandardIndent();
+                break;
+            case UNDER_FIRST_ARGUMENT:
+            default:
+                newLinePosition = parentPosition;
+                break;
+            }
+        }
+        renderResult = new RenderMultiLines(this, formatContext, parentResult).setIndentBase(newLinePosition);
+//        if (renderResult.getPosition() > newLinePosition) {
+//            renderResult.addLine(Util.nSpaces(newLinePosition));
+//        }
+        ListIterator<ListElement> it = getElements().listIterator();
+        ListElement element = it.next();
+        int elementLength = -1;
+        int groupLength;
+        float decisionWeight;
+        while (element != null) {
+            elementsOnLine = 1;
+            renderResult.addRenderResult(element.beautify(formatContext, renderResult, config), formatContext);
+            groupLength = renderResult.getPosition() - newLinePosition;
+            element = null;
+            while (it.hasNext()) {
+                element = it.next();
+                elementsOnLine++;
+                if (elementsOnLine > maxElementsPerGroup.getValue()
+                        && maxElementsPerGroup.getWeight().floatValue() >= maxGroupLength.getWeight().floatValue()) {
+                    break;
+                }
+                decisionWeight = maxElementsPerGroup.getWeight().floatValue();
+                elementLength = element.getSingleLineWidth(config);
+                if (elementLength < 0) {
+                    break;
+                }
+                groupLength += elementLength + 2;
+                if (groupLength > maxGroupLength.getValue()
+                        && maxGroupLength.getWeight().floatValue() >= maxElementsPerGroup.getWeight().floatValue()) {
+                    break;
+                }
+                if (decisionWeight < maxGroupLength.getWeight()) {
+                    decisionWeight = maxGroupLength.getWeight().floatValue();
+                }
+                if (groupLength + newLinePosition > maxLineLength.getValue()
+                        && maxLineLength.getWeight().floatValue() >= decisionWeight) {
+                    break;
+                }
+                renderResult.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
+                renderResult.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
+                renderResult.addRenderResult(element.beautify(formatContext, renderResult, config), formatContext);
+                element = null;
+            }
+            if (element != null) {
+                if (BeforeOrAfterType.BEFORE
+                        .equals(formatContext.getCommaSeparatedListGrouping().getCommaBeforeOrAfter())) {
+                    renderResult.positionAt(newLinePosition - 2);
+                    renderResult.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
+                    renderResult.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
+                } else {
+                    renderResult.positionAfterLastNonWhitespace();
+                    renderResult.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
+                    renderResult.positionAt(newLinePosition);
+                }
+            }
+        }
+        return cacheRenderResult(renderResult, formatContext, parentResult);
     }
 
     /**
@@ -427,4 +418,47 @@ public class CommaSeparatedList extends SrcNode {
         return elements;
     }
 
+    /**
+     * @see ScanResult#getSingleLineWidth(FormatConfiguration)
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        if (singleLineLength != 0) {
+            // calculated before
+            return singleLineLength;
+        }
+        int elementWidth;
+        if (getElements().size() == 1) {
+            singleLineLength = getElements().get(0).getSingleLineWidth(config);
+            return singleLineLength;
+        }
+        if (config.getCommaSeparatedListGrouping().getMaxArgumentsPerGroup().getWeight().floatValue() >= config
+                .getCommaSeparatedListGrouping().getMaxSingleLineLength().getWeight().floatValue()
+                && getElements().size() > config.getCommaSeparatedListGrouping().getMaxArgumentsPerGroup().getValue()) {
+            singleLineLength = -1;
+            return singleLineLength;
+        }
+        for (ListElement element : getElements()) {
+            elementWidth = element.getSingleLineWidth(config);
+            if (elementWidth < 0) {
+                singleLineLength = -1;
+                return singleLineLength;
+            }
+            singleLineLength += elementWidth;
+        }
+        if (singleLineLength > 0) {
+            singleLineLength += 2 * (getElements().size() - 1); // Room for the commas
+        }
+        return singleLineLength;
+    }
+
+    /**
+     * Indicates that the parent result is a {@link com.splendiddata.pgcode.formatter.scanner.structure.InParentheses}
+     *
+     * @return CommaSeparatedList this
+     */
+    public CommaSeparatedList setParentIsParentheses() {
+        parentIsParentheses = true;
+        return this;
+    }
 }

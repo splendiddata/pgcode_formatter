@@ -12,6 +12,7 @@ BEGIN
 END;
 $inner$
 	LANGUAGE plpgsql;
+
 	SELECT inner() INTO s;
 	RAISE NOTICE '%', s;
 END;

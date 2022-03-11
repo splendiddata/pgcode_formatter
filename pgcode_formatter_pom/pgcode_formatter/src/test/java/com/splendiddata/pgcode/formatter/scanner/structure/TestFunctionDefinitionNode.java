@@ -45,8 +45,7 @@ public class TestFunctionDefinitionNode {
                         "DECLARE\n" +
                         "    \n" +
                         "BEGIN\n" +
-                        "  RAISE NOTICE 'test';" +
-                        "    RETURN 1;\n" +
+                        "  RAISE NOTICE 'test';    RETURN 1;\n" +
                         "END;\n" +
                         "$$",
                 // expected

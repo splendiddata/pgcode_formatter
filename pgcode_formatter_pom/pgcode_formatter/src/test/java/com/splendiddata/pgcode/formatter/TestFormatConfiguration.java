@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -23,6 +23,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
@@ -35,6 +36,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.Configuration;
+import com.splendiddata.pgcode.formatter.helper.DefaultConfigCreator;
 
 /**
  * Checks if the format configuration does not contain any null value
@@ -47,6 +49,8 @@ public class TestFormatConfiguration {
 
     private static String failedAt = null;
     private static Path projectDirectory;
+    
+    private static Set<String> nonFieldGetters = Set.of("getTabSplitPattern", "getTabReplacementPattern", "getLeadingSpacesPattern");
 
     @BeforeAll
     public static void beforeAll() {
@@ -82,7 +86,7 @@ public class TestFormatConfiguration {
      */
     @Test
     public void testDefaultConfiguration() {
-        Configuration config = FormatConfiguration.getEffectiveConfiguration();
+        Configuration config = DefaultConfigCreator.getConfiguration();
         log.info("check  FormatConfiguration.getEffectiveConfiguration()");
         checkObject(config, "FormatConfiguration.effectiveConfiguration");
     }
@@ -124,7 +128,7 @@ public class TestFormatConfiguration {
                 continue;
             }
             String fldName = method.getName();
-            if (fldName.startsWith("get")) {
+            if (fldName.startsWith("get") && !nonFieldGetters.contains(fldName) ) {
                 fldName = fldName.substring(3);
             } else if (fldName.startsWith("is")) {
                 fldName = fldName.substring(2);

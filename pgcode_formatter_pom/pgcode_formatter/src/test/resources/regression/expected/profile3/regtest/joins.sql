@@ -1,4 +1,6 @@
-select a, b, c
+select a
+     , b
+     , c
 from tablea
      join tableb on (tablea.a=tableb.a)
      join tablec on (tablec.a=tableb.a)

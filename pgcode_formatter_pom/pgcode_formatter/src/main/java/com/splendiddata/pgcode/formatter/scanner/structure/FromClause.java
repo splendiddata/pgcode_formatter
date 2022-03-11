@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -56,6 +53,8 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
     private static final Set<String> KEY_WORDS = Collections
             .unmodifiableSet(new HashSet<>(Arrays.asList("NATURAL", "CROSS", "LEFT", "RIGHT", "FULL", "INNER", "OUTER",
                     "JOIN", "LATERAL", "WITH", "ORDINARY", "TABLESAMPLE", "ROWS", "AS", "ON")));
+
+    private int singleLineWidth;
 
     /**
      * Constructor
@@ -122,21 +121,27 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
     @Override
     public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
-
-        RenderMultiLines result = new RenderMultiLines(this, formatContext).setIndent(0);
-        ScanResult node = getStartScanResult();
-        result.addRenderResult(node.beautify(formatContext, result, config), formatContext); // from
-        if (config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()) {
-            result.addLine();
-        } else {
-            result.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
         }
-        result.addRenderResult(renderContent(node.getNextNonWhitespace(), formatContext, config), formatContext);
+
+        int parentPosition = parentResult == null ? 0 : parentResult.getPosition();
+        renderResult = new RenderMultiLines(this, formatContext, parentResult).setIndentBase(parentPosition);
+        ScanResult node = getStartScanResult();
+        renderResult.addRenderResult(node.beautify(formatContext, renderResult, config), formatContext); // from
+        if (config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()) {
+            renderResult.setIndent(config.getStandardIndent()).addLine();
+        } else {
+            renderResult.setIndent("from ".length()).addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
+        }
+        renderResult.addRenderResult(renderContent(node.getNextNonWhitespace(), formatContext, config, renderResult),
+                formatContext);
 
         if (log.isDebugEnabled()) {
-            log.debug("beautify result =\n" + result.beautify());
+            log.debug("beautify result =\n" + renderResult.beautify());
         }
-        return result;
+        return cacheRenderResult(renderResult, formatContext, parentResult);
     }
 
     /**
@@ -151,7 +156,12 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
      * @return RenderMultiLines with the content
      */
     private RenderMultiLines renderContent(ScanResult firstNonWhitespace, FormatContext formatContext,
-            FormatConfiguration config) {
+            FormatConfiguration config, RenderMultiLines parentResult) {
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
+        }
+        
         FromItemGroupingType fromConfig = config.getFromItemGrouping();
         CommaSeparatedListGroupingType csListConfig = ConfigUtil.copy(config.getCommaSeparatedListGrouping());
         csListConfig.setMultilineOpeningParenBeforeArgument(fromConfig.isMultilineOpeningParenBeforeArgument());
@@ -166,47 +176,51 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
         }
         boolean containsComma = false;
 
-        RenderMultiLines result = new RenderMultiLines(null, formatContext);
+        renderResult = new RenderMultiLines(null, formatContext, parentResult);
         /*
          * First try to render everything on a single line (while gathering render results that will be used if
          * rendering on a single line didn't work out)
          */
-        for (ScanResult node = firstNonWhitespace; node != null; node = node.getNext()) {
-            if (node.is(ScanResultType.CHARACTER) && ",".equals(node.toString())) {
-                containsComma = true;
-                result.removeTrailingSpaces();
-                result.addRenderResult(node.beautify(myContext, result, config), formatContext);
-                result.addWhiteSpace();
-            } else {
-                result.addRenderResult(node.beautify(myContext, result, config), formatContext);
+        int singleLineLength = getSingleLineWidth(config);
+        if (singleLineLength > 0 && parentResult.getPosition() + singleLineLength <= config.getLineWidth().getValue()) {
+            for (ScanResult node = firstNonWhitespace; node != null; node = node.getNext()) {
+                if (node.is(ScanResultType.CHARACTER) && ",".equals(node.toString())) {
+                    containsComma = true;
+                    renderResult.removeTrailingSpaces();
+                    renderResult.addRenderResult(node.beautify(myContext, renderResult, config), formatContext);
+                    renderResult.addWhiteSpace();
+                } else {
+                    renderResult.addRenderResult(node.beautify(myContext, renderResult, config), formatContext);
+                }
             }
-        }
-        if (result.getHeight() <= 1 && result.getWidth() <= maxLength) {
-            // The result fits on a single line
-            if (log.isTraceEnabled()) {
-                log.trace(new StringBuilder().append("beautify single line: ").append(this).append("\nconfig: ")
-                        .append(Util.xmlBeanToString(fromConfig)).append("=\n").append(result.beautify()));
+            if (renderResult.getHeight() <= 1 && renderResult.getWidth() <= maxLength) {
+                // The result fits on a single line
+                if (log.isTraceEnabled()) {
+                    log.trace(new StringBuilder().append("beautify single line: ").append(this).append("\nconfig: ")
+                            .append(Util.xmlBeanToString(fromConfig)).append("=\n").append(renderResult.beautify()));
+                }
+                return renderResult;
             }
-            return result;
         }
 
         /*
          * The result didn't fit on a single line, so render multiline
          */
-        result = new RenderMultiLines(null, formatContext).setIndent(decideOnIndent(config, containsComma));
-        RenderMultiLines tableEntryResult = new RenderMultiLines(null, formatContext).setIndent(0);
+        renderResult = new RenderMultiLines(null, formatContext, parentResult)
+                .setIndent(decideOnIndent(config, containsComma));
+        RenderMultiLines tableEntryResult = new RenderMultiLines(null, formatContext, renderResult);
         if (RelativePositionTypeEnum.SUBSEQUENT.equals(fromConfig.getAliasAlignment().getAlignment())) {
             // No need to take care of positioning the alias correctly
             for (ScanResult node = firstNonWhitespace; node != null; node = node.getNext()) {
                 if (node.is(ScanResultType.CHARACTER) && ",".equals(node.toString())) {
                     tableEntryResult.removeTrailingSpaces();
-                    result.addRenderResult(tableEntryResult, formatContext);
-                    nextElementOnNextLine(result, fromConfig.getComma(), formatContext);
-                    tableEntryResult = new RenderMultiLines(null, formatContext);
+                    renderResult.addRenderResult(tableEntryResult, formatContext);
+                    nextElementOnNextLine(renderResult, fromConfig.getComma(), formatContext);
+                    tableEntryResult = new RenderMultiLines(null, formatContext, renderResult);
                 } else if (node.is(ScanResultType.IDENTIFIER) && JOIN_WORDS.contains(node.toString().toUpperCase())) {
-                    result.addRenderResult(tableEntryResult, formatContext);
-                    result.addLine();
-                    tableEntryResult = new RenderMultiLines(null, formatContext);
+                    renderResult.addRenderResult(tableEntryResult, formatContext);
+                    renderResult.addLine();
+                    tableEntryResult = new RenderMultiLines(null, formatContext, renderResult);
                     for (; (node.is(ScanResultType.IDENTIFIER) && JOIN_WORDS.contains(node.toString().toUpperCase()))
                             || !node.getType().isInterpretable(); node = node.getNext()) {
                         tableEntryResult.addRenderResult(node.beautify(myContext, tableEntryResult, config),
@@ -217,13 +231,13 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
                     tableEntryResult.addRenderResult(node.beautify(myContext, tableEntryResult, config), formatContext);
                 }
             }
-            result.addRenderResult(tableEntryResult, formatContext);
+            renderResult.addRenderResult(tableEntryResult, formatContext);
             if (log.isTraceEnabled()) {
                 log.trace(new StringBuilder().append("beautify subsequent alias positioning: ").append(this)
                         .append("\nconfig: ").append(Util.xmlBeanToString(fromConfig)).append("=\n")
-                        .append(result.beautify()));
+                        .append(renderResult.beautify()));
             }
-            return result;
+            return cacheRenderResult(renderResult, formatContext, parentResult);
         }
 
         /*
@@ -236,16 +250,16 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
         for (ScanResult node = firstNonWhitespace; node != null; node = node.getNext()) {
             if (node.is(ScanResultType.CHARACTER) && ",".equals(node.toString())) {
                 tableEntryResult.removeTrailingSpaces();
-                result.addRenderResult(tableEntryResult, formatContext);
-                nextElementOnNextLine(result, fromConfig.getComma(), formatContext);
-                tableEntryResult = new RenderMultiLines(null, formatContext);
+                renderResult.addRenderResult(tableEntryResult, formatContext);
+                nextElementOnNextLine(renderResult, fromConfig.getComma(), formatContext);
+                tableEntryResult = new RenderMultiLines(null, formatContext, renderResult);
                 passedANonKeyword = false;
                 aliasFound = false;
             } else if (node.is(ScanResultType.IDENTIFIER) && JOIN_WORDS.contains(node.toString().toUpperCase())) {
                 tableEntryResult.removeTrailingSpaces();
-                result.addRenderResult(tableEntryResult, formatContext);
-                result.addLine();
-                tableEntryResult = new RenderMultiLines(null, formatContext);
+                renderResult.addRenderResult(tableEntryResult, formatContext);
+                renderResult.addLine();
+                tableEntryResult = new RenderMultiLines(null, formatContext, renderResult);
                 for (; (node.is(ScanResultType.IDENTIFIER) && JOIN_WORDS.contains(node.toString().toUpperCase()))
                         || !node.getType().isInterpretable(); node = node.getNext()) {
                     tableEntryResult.addRenderResult(node.beautify(myContext, tableEntryResult, config), formatContext);
@@ -277,31 +291,32 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
         }
         if (RelativePositionTypeEnum.AT_HORIZONTAL_POSITION.equals(fromConfig.getAliasAlignment().getAlignment())
                 || aliases.isEmpty()) {
-            result.addRenderResult(tableEntryResult, formatContext);
+            renderResult.addRenderResult(tableEntryResult, formatContext);
             if (log.isTraceEnabled()) {
                 log.trace(new StringBuilder().append("beautify no or fixed alias positioning: ").append(this)
                         .append("\nconfig: ").append(Util.xmlBeanToString(fromConfig)).append("=\n")
-                        .append(result.beautify()));
+                        .append(renderResult.beautify()));
             }
-            return result;
+            return cacheRenderResult(renderResult, formatContext, parentResult);
         }
 
         /*
          * The alias position must be vertically aligned here. And now we know the alias position
          */
-        result = new RenderMultiLines(null, formatContext).setIndent(decideOnIndent(config, containsComma));
-        tableEntryResult = new RenderMultiLines(null, formatContext).setIndent(0);
+        renderResult = new RenderMultiLines(null, formatContext, parentResult)
+                .setIndent(decideOnIndent(config, containsComma));
+        tableEntryResult = new RenderMultiLines(null, formatContext, parentResult);
         for (ScanResult node = firstNonWhitespace; node != null; node = node.getNext()) {
             if (node.is(ScanResultType.CHARACTER) && ",".equals(node.toString())) {
                 tableEntryResult.removeTrailingSpaces();
-                result.addRenderResult(tableEntryResult, formatContext);
-                nextElementOnNextLine(result, fromConfig.getComma(), formatContext);
-                tableEntryResult = new RenderMultiLines(null, formatContext);
+                renderResult.addRenderResult(tableEntryResult, formatContext);
+                nextElementOnNextLine(renderResult, fromConfig.getComma(), formatContext);
+                tableEntryResult = new RenderMultiLines(null, formatContext, parentResult);
             } else if (node.is(ScanResultType.IDENTIFIER) && JOIN_WORDS.contains(node.toString().toUpperCase())) {
                 tableEntryResult.removeTrailingSpaces();
-                result.addRenderResult(tableEntryResult, formatContext);
-                result.addLine();
-                tableEntryResult = new RenderMultiLines(null, formatContext);
+                renderResult.addRenderResult(tableEntryResult, formatContext);
+                renderResult.addLine();
+                tableEntryResult = new RenderMultiLines(null, formatContext, parentResult);
                 for (; (node.is(ScanResultType.IDENTIFIER) && JOIN_WORDS.contains(node.toString().toUpperCase()))
                         || !node.getType().isInterpretable(); node = node.getNext()) {
                     tableEntryResult.addRenderResult(node.beautify(myContext, tableEntryResult, config), formatContext);
@@ -314,14 +329,14 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
                 tableEntryResult.addRenderResult(node.beautify(myContext, tableEntryResult, config), formatContext);
             }
         }
-        result.addRenderResult(tableEntryResult, formatContext);
+        renderResult.addRenderResult(tableEntryResult, formatContext);
 
         if (log.isTraceEnabled()) {
             log.trace(new StringBuilder().append("beautify vertical alias positioning: ").append(this)
                     .append("\nconfig: ").append(Util.xmlBeanToString(fromConfig)).append("=\n")
-                    .append(result.beautify()));
+                    .append(renderResult.beautify()));
         }
-        return result;
+        return cacheRenderResult(renderResult, formatContext, parentResult);
     }
 
     /**
@@ -336,9 +351,9 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
     private static int decideOnIndent(FormatConfiguration config, boolean containsComma) {
         if (config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()) {
             if (containsComma && BeforeOrAfterType.BEFORE.equals(config.getFromItemGrouping().getComma())) {
-                return FormatContext.indent(true).length() - 2;
+                return config.getStandardIndent() - 2;
             }
-            return FormatContext.indent(true).length();
+            return config.getStandardIndent();
         } else {
             if (containsComma && BeforeOrAfterType.BEFORE.equals(config.getFromItemGrouping().getComma())) {
                 return 3;
@@ -361,7 +376,7 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
     private static void nextElementOnNextLine(RenderMultiLines result, BeforeOrAfterType commaBeforeOrAfter,
             FormatContext formatContext) {
         if (BeforeOrAfterType.BEFORE.equals(commaBeforeOrAfter)) {
-            int indent = result.getStandardIndent();
+            int indent = result.getLocalIndent();
             result.setIndent(indent - 2);
             result.addLine();
             result.setIndent(indent);
@@ -371,5 +386,25 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
             result.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
             result.addLine();
         }
+    }
+
+    /**
+     * @see ScanResult#getSingleLineWidth(FormatConfiguration)
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        if (singleLineWidth != 0) {
+            return singleLineWidth;
+        }
+        int elementWidth;
+        for (ScanResult element = this.getStartScanResult(); element != null; element = element.getNext()) {
+            elementWidth = element.getSingleLineWidth(config);
+            if (elementWidth < 0) {
+                singleLineWidth = -1;
+                return singleLineWidth;
+            }
+            singleLineWidth += elementWidth;
+        }
+        return singleLineWidth;
     }
 }

@@ -51,9 +51,11 @@ public class TestUpdateTableNode {
             "                     where product_name = lower(p_product_name)\n" +
             "                 )",
             // expected
-            "update product_version set product_version_active = false where product_id = ( select product_id\n" +
-            "                                                                               from product\n" +
-            "                                                                               where product_name = lower(p_product_name) )"}
+            "update product_version\n"
+            + "set product_version_active = false\n"
+            + "where product_id = ( select product_id\n"
+            + "                     from product\n"
+            + "                     where product_name = lower(p_product_name) )"}
             // @formatter:on
         };
     }

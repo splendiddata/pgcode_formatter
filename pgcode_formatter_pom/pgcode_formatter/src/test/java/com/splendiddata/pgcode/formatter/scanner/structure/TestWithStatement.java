@@ -60,9 +60,10 @@ public class TestWithStatement {
             RenderResult renderResult = st.beautify(new FormatContext(config, null), null, config);
             output = renderResult.beautify();
             //@Formatter:off
-            Assertions.assertEquals("with a as ( select 'a long text to make the line too long'\n"
-                    + "            union all\n"
-                    + "            values ('another long text, just to be sure that the line will be too long') )\n"
+            Assertions.assertEquals("with a as (\n"
+                    + "          select 'a long text to make the line too long'\n"
+                    + "          union all\n"
+                    + "          values ('another long text, just to be sure that the line will be too long') )\n"
                     + "select * from a", output);
             //@Formatter:on
         }

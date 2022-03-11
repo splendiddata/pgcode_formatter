@@ -1,23 +1,23 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
 
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
+import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CaseThenPositionOption;
+import com.splendiddata.pgcode.formatter.internal.CaseFormatContext;
+import com.splendiddata.pgcode.formatter.internal.CaseFormatContext.RenderPhase;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
 import com.splendiddata.pgcode.formatter.internal.RenderMultiLines;
@@ -32,7 +32,6 @@ import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
  * @since 0.0.1
  */
 public class PlpgsqlBeginEndBlock extends SrcNode implements WantsNewlineBefore {
-
     /**
      * Constructor
      *
@@ -41,15 +40,14 @@ public class PlpgsqlBeginEndBlock extends SrcNode implements WantsNewlineBefore 
      */
     public PlpgsqlBeginEndBlock(ScanResult scanResult) {
         super(ScanResultType.PLPGSQL_BEGIN_END_BLOCK, PostgresInputReader.toIdentifier(scanResult));
-        assert "begin".equalsIgnoreCase(
-                scanResult.toString()) : "A PlpgsqlBeginEndBlock should start with the word BEGIN, not with "
-                        + scanResult;
+        assert "begin".equalsIgnoreCase(scanResult
+                .toString()) : "A PlpgsqlBeginEndBlock should start with the word BEGIN, not with " + scanResult;
         int beginEndLevel = scanResult.getBeginEndLevel();
         ScanResult currentNode;
         ScanResult priorNode = getStartScanResult();
         for (currentNode = priorNode.getNext(); currentNode != null
-                && (currentNode.getBeginEndLevel() >= beginEndLevel || (currentNode != null
-                        && "exception".equalsIgnoreCase(currentNode.toString()))); currentNode = (priorNode == null
+                && (currentNode.getBeginEndLevel() > beginEndLevel || (currentNode.getBeginEndLevel() == beginEndLevel
+                        && !"exception".equalsIgnoreCase(currentNode.toString()))); currentNode = (priorNode == null
                                 ? null
                                 : priorNode.getNext())) {
             currentNode = PostgresInputReader.interpretPlpgsqlStatementStart(priorNode.getNext());
@@ -62,9 +60,9 @@ public class PlpgsqlBeginEndBlock extends SrcNode implements WantsNewlineBefore 
             currentNode = currentNode.getNextInterpretable();
             for (currentNode = priorNode.getNext(); currentNode != null
                     && currentNode.getBeginEndLevel() >= beginEndLevel; currentNode = priorNode.getNext()) {
-                if ("exception".equalsIgnoreCase(currentNode.toString())) {
+                if ("when".equalsIgnoreCase(currentNode.toString())) {
                     currentNode = new WhenClauseNode(currentNode,
-                            (ScanResult node) -> PostgresInputReader.interpretPlpgsqlStatementStart(node));
+                            (ScanResult node) -> PostgresInputReader.interpretPlpgsqlStatementStart(node), true);
                 } else {
                     currentNode = PostgresInputReader.interpretPlpgsqlStatementStart(priorNode.getNext());
                 }
@@ -95,57 +93,85 @@ public class PlpgsqlBeginEndBlock extends SrcNode implements WantsNewlineBefore 
     }
 
     /**
+     * @see SrcNode#getBeginEndLevel()
+     *
+     * @return int the beginEndLevel AFTER this object
+     */
+    @Override
+    public int getBeginEndLevel() {
+        /*
+         * BEGIN increments the nesting level, but END decrements it. getBeginEndLevel() should return
+         * the level AFTER the node, so should return that of the start node minus 1.
+         */
+        return super.getBeginEndLevel() - 1;
+    }
+
+    /**
      * @see ScanResult#beautify(FormatContext, RenderMultiLines, FormatConfiguration)
      */
     @Override
     public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
+        RenderMultiLines result = getCachedRenderResult(formatContext, parentResult, config);
+        if (result != null) {
+            return result;
+        }
+
+        int parentPosition = 0;
+        if (parentResult != null) {
+            if (!parentResult.isLastNonWhiteSpaceEqualToLinefeed()) {
+                parentResult.addLine();
+            }
+            parentPosition = parentResult.getPosition();
+        }
         ScanResult node = getStartScanResult(); // begin
         int beginEndLevel = node.getBeginEndLevel();
-        int standardIndent = FormatContext.indent(true).length();
+        FormatContext contentContext = new FormatContext(config, formatContext)
+                .setAvailableWidth(formatContext.getAvailableWidth() - config.getStandardIndent());
+        result = new RenderMultiLines(this, contentContext, parentResult).setIndentBase(parentPosition)
+                .setIndent(config.getStandardIndent());
 
         /*
          * The word begin and a line feed
          */
-        RenderMultiLines result = new RenderMultiLines(this, formatContext).setIndent(0);
-        result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+        result.addRenderResult(node.beautify(contentContext, result, config), contentContext);
         result.addLine();
-
-        /*
-         * The content of the compound statement
-         */
-        FormatContext contentContext = new FormatContext(config, formatContext)
-                .setAvailableWidth(formatContext.getAvailableWidth() - standardIndent);
-        RenderMultiLines contentResult = new RenderMultiLines(null, formatContext);
         for (node = node.getNextNonWhitespace(); node != null
                 && node.getBeginEndLevel() >= beginEndLevel; node = node.getNext()) {
             if (node.is(ScanResultType.IDENTIFIER) && "exception".equalsIgnoreCase(node.toString())) {
-                contentResult.removeTrailingLineFeeds();
-                contentResult.removeTrailingSpaces();
-                result.addRenderResult(contentResult, formatContext);
+                result.positionAfterLastNonWhitespace();
+                result.setIndent(0);
                 result.addLine();
-                result.addRenderResult(node.beautify(contentContext, result, config), formatContext);
-                result.addLine();
-                contentResult = new RenderMultiLines(null, formatContext);
+                result.addRenderResult(node.beautify(contentContext, result, config), contentContext);
+                result.setIndent(config.getStandardIndent());
+                contentContext = new CaseFormatContext(config, contentContext, config.getCaseWhen());
+                if (CaseThenPositionOption.THEN_AFTER_WHEN_ALIGNED
+                        .equals(config.getCaseWhen().getThenPosition().getValue())) {
+                    ((CaseFormatContext) contentContext).setRenderPhase(RenderPhase.DETERMINE_THEN_POSITION);
+                    for (ScanResult whenStatement = node
+                            .getNextInterpretable(); whenStatement instanceof WhenClauseNode; whenStatement = whenStatement
+                                    .getNextInterpretable()) {
+                        whenStatement.beautify(contentContext, result, config);
+                    }
+                    ((CaseFormatContext) contentContext).setRenderPhase(RenderPhase.RENDER_NORMAL);
+                }
             } else {
                 if (node.is(ScanResultType.LINEFEED)) {
-                    contentResult.addLine();
+                    result.addLine();
                 } else {
-                    if (node.getType().isInterpretable() || contentResult.isLastNonWhiteSpaceEqualToLinefeed()) {
-                        contentResult.positionAt(standardIndent);
+                    if (!result.isLastNonWhiteSpaceEqualToLinefeed() && node.getType().isInterpretable()) {
+                        result.addLine();
                     }
-                    contentResult.addRenderResult(node.beautify(contentContext, contentResult, config), formatContext);
+                    result.addRenderResult(node.beautify(contentContext, result, config), contentContext);
                 }
             }
         }
-        contentResult.removeTrailingLineFeeds();
-        contentResult.removeTrailingSpaces();
-        result.addRenderResult(contentResult, formatContext);
-        result.addLine();
+        result.positionAfterLastNonWhitespace();
+        result.setIndent(0).addLine();
         for (; node != null; node = node.getNext()) {
-            result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+            result.addRenderResult(node.beautify(contentContext, result, config), formatContext);
         }
-        return result;
+        return cacheRenderResult(result, formatContext, parentResult);
     }
 
     /**
@@ -171,4 +197,15 @@ public class PlpgsqlBeginEndBlock extends SrcNode implements WantsNewlineBefore 
     public String toString() {
         return getText();
     }
+
+    /**
+     * @see ScanResult#getSingleLineWidth(FormatConfiguration)
+     *
+     * @return -1 as a begin ... end block never renders to a single line
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        return -1;
+    }
+
 }

@@ -1,11 +1,11 @@
-CREATE OR REPLACE FUNCTION literal_with_newline_character( q						VARCHAR,
-														   s						VARCHAR 	   DEFAULT
-																								   '
-                  ,'::VARCHAR,
-														   f						VARCHAR 	   DEFAULT
-																								   NULL::VARCHAR,
-														   l						VARCHAR 	   DEFAULT
-																								   NULL::VARCHAR
+CREATE OR REPLACE FUNCTION literal_with_newline_character(
+														 q						  VARCHAR,
+														 s						  VARCHAR		 DEFAULT
+																								 '
+                  ,'::VARCHAR,							 f						  VARCHAR		 DEFAULT
+																								 NULL::VARCHAR,
+														 l						  VARCHAR		 DEFAULT
+																								 NULL::VARCHAR
 														 )
 RETURNS INTEGER
 LANGUAGE plpgsql

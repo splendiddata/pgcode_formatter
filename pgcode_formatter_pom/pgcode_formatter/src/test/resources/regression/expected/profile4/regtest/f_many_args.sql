@@ -42,18 +42,18 @@ BEGIN
         (coalesce(argum_as_dest::text, '') = '') and (coalesce(argum_tc_dest::text, '') = '')
     then
         ln_count := some_schema.f_multiarg_function
-                ( common_node, argum_dc_zap, argum_dc_bin, argum_dv_zap, argum_dv_bin
-                , argum_da_zap, argum_da_bin, argum_de_zap, argum_de_bin
-                );
+            ( common_node, argum_dc_zap, argum_dc_bin, argum_dv_zap, argum_dv_bin
+            , argum_da_zap, argum_da_bin, argum_de_zap, argum_de_bin
+            );
     else
         ln_count := some_schema.F_ALSO_MANY
-                ( common_node, argum_dc_zap, argum_dc_bin, argum_dv_zap, argum_dv_bin
-                , argum_da_zap, argum_da_bin, argum_de_zap, argum_de_bin
-                , argum_as_orig, argum_as_dest, argum_tc_orig, argum_tc_dest
-                ) - some_schema.F_STILL_MUCH
-                ( argum_da_bin, argum_de_zap, argum_de_bin, argum_as_orig
-                , argum_as_dest, argum_tc_orig, argum_tc_dest
-                );
+            ( common_node, argum_dc_zap, argum_dc_bin, argum_dv_zap, argum_dv_bin
+            , argum_da_zap, argum_da_bin, argum_de_zap, argum_de_bin, argum_as_orig
+            , argum_as_dest, argum_tc_orig, argum_tc_dest
+            ) - some_schema.F_STILL_MUCH
+            ( argum_da_bin, argum_de_zap, argum_de_bin, argum_as_orig, argum_as_dest
+            , argum_tc_orig, argum_tc_dest
+            );
     end if;
     return ln_count;
 end;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -70,7 +70,7 @@ public class SetClauseNode extends SrcNode implements WantsNewlineBefore {
     public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
         int availableWidth = formatContext.getAvailableWidth();
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
+        RenderMultiLines result = new RenderMultiLines(this, formatContext, parentResult);
         for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
             result.addRenderResult(node.beautify(formatContext.setAvailableWidth(availableWidth - result.getPosition()),
                     result, config), formatContext);

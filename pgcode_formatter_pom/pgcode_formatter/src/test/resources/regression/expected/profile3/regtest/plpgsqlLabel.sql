@@ -17,6 +17,7 @@ BEGIN
         RAISE NOTICE 'Quantity here is %', quantity; -- Prints 80
         RAISE NOTICE 'Outer quantity here is %', outerblock.quantity; -- Prints 50
     END;
+
     RAISE NOTICE 'Quantity here is %', quantity; -- Prints 50
     RETURN quantity;
 END;

@@ -173,10 +173,8 @@ public class PostgresInputReader implements Closeable {
             case "set":
             case "fetch":
             case "execute":
-                result = new JustAStatementNode(startNode);
-                break;
             default:
-                result = interpretIdentifier(startNode);
+                result = new JustAStatementNode(startNode);
                 break;
             }
             break;

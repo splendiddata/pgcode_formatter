@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -40,6 +37,10 @@ public abstract class SrcNode implements ScanResult {
     private ScanResult startScanResult;
 
     private ScanResult next;
+
+    private RenderMultiLines cachedRenderResult;
+    private FormatContext cachedContext;
+    private int cachedParentPosition;
 
     /**
      * Constructor
@@ -163,8 +164,14 @@ public abstract class SrcNode implements ScanResult {
         if (log.isTraceEnabled()) {
             log.trace("beautify called from" + Thread.currentThread().getStackTrace()[2]);
         }
-        return Util.renderStraightForward(getStartScanResult(), new RenderMultiLines(this, formatContext),
-                formatContext, config);
+        RenderMultiLines cachedResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+        return cacheRenderResult(
+                Util.renderStraightForward(getStartScanResult(),
+                        new RenderMultiLines(this, formatContext, parentResult), formatContext, config),
+                formatContext, parentResult);
     }
 
     /**
@@ -175,5 +182,93 @@ public abstract class SrcNode implements ScanResult {
      */
     protected void replaceStartScanResult(ScanResult replacement) {
         startScanResult = replacement;
+    }
+
+    /**
+     * Caches a clone of the resultToCache together with a clone of the formatContext and the current position in the
+     * parentResult.
+     * <p>
+     * (Parts of) statements may be rendered multiple times in order to get a "best fit" in the end result. But when the
+     * formatContext and the parent position do not change from one render attempt to another, then the render result
+     * will not change either. So, in that case, a cached result could be returned.
+     *
+     * @param resultToCache
+     *            The RenderResult of which a clone will be cached
+     * @param formatContext
+     *            The formatContext that probably influenced the rendering process. A clone if this will be cached as
+     *            well.
+     * @param parentResult
+     *            The result to which the just rendered result would be added. The current position in that result may
+     *            have influenced the rendering process. If the parentResult is null, then position zero will be
+     *            assumed.
+     * @return RenderResult The resultToCache
+     * @since 0.3
+     */
+    protected RenderMultiLines cacheRenderResult(RenderMultiLines resultToCache, FormatContext formatContext,
+            RenderMultiLines parentResult) {
+        cachedRenderResult = resultToCache.clone();
+        cachedContext = formatContext.clone();
+        cachedParentPosition = 0;
+        if (parentResult != null) {
+            cachedParentPosition = parentResult.getPosition();
+        }
+        return resultToCache;
+    }
+
+    /**
+     * Returns a clone of the cached result if
+     * <ul>
+     * <li>a render result has been cached using the
+     * {@link #cacheRenderResult(RenderMultiLines, FormatContext, RenderMultiLines)} method</li>
+     * <li>the formatContext equals the cached clone of the format context that was stored using the
+     * cacheRenderResult(RenderMultiLines, FormatContext, RenderMultiLines) method.</li>
+     * <li>the current position in the parentResult is the same as it was when the cacheRenderResult(RenderMultiLines,
+     * FormatContext, RenderMultiLines) method was invoked or if the cachedRenderResult contains only one line and the
+     * result would still fit on the line after the parent position</li>
+     * </ul>
+     *
+     * @param formatContext
+     *            The formatContext from the containing
+     *            {@link #beautify(FormatContext, RenderMultiLines, FormatConfiguration)} method
+     * @param parentResult
+     *            The parentResult from the containing beautify(FormatContext, RenderMultiLines, FormatConfiguration)
+     *            method
+     * @param config
+     *            The configuration that will tell the maximum line width
+     * @return RenderMultiLines a clone of the cached result or null if there wasn't any or if the cached result is no
+     *         longer usefull
+     * @since 0.3
+     */
+    protected RenderMultiLines getCachedRenderResult(FormatContext formatContext, RenderMultiLines parentResult,
+            FormatConfiguration config) {
+        if (cachedRenderResult == null) {
+            return null;
+        }
+        int parentPosition = 0;
+        if (parentResult != null) {
+            parentPosition = parentResult.getPosition();
+        }
+        if (cachedContext.equals(formatContext)
+                && (cachedParentPosition == parentPosition || cachedRenderResult.getHeight() <= 1
+                        && (parentPosition < cachedParentPosition || (parentPosition > cachedParentPosition
+                                && cachedRenderResult.getWidth() <= config.getLineWidth().getValue())))) {
+            return cachedRenderResult.clone();
+        }
+        return null;
+    }
+
+    /**
+     * Clears the cached result
+     *
+     * @param <T>
+     *            The actual class
+     * @return this
+     * @since 0.3
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends SrcNode> T clearResultCache() {
+        cachedRenderResult = null;
+        cachedContext = null;
+        return (T) this;
     }
 }

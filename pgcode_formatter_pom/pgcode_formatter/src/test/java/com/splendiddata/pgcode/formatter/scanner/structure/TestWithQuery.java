@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -77,10 +77,10 @@ public class TestWithQuery {
             output = renderResult.beautify();
 //@formatter:off
             Assertions.assertEquals(
-                    "a_somewhat_long_name ( some_long_column_name, another_long_column_name\n" + 
-                    "                     , and_another_name_also_long\n" + 
-                    "                     , \"and a long double quoted column name\"\n" + 
-                    "                     , \"and let's do another long double quoted column name\" ) as materialized (select 'x')",
+                    "a_somewhat_long_name ( some_long_column_name, another_long_column_name\n"
+                    + "                     , and_another_name_also_long\n"
+                    + "                     , \"and a long double quoted column name\"\n"
+                    + "                     , \"and let's do another long double quoted column name\" ) as materialized (select 'x')",
                     output);
 //@formatter:on
         }
@@ -102,11 +102,11 @@ public class TestWithQuery {
             output = renderResult.beautify();
 //@formatter:off
             Assertions.assertEquals(
-                    "\"this is a with query with an absurdly long double quoted name to enforce a line break\"\n" + 
-                    "    ( some_long_column_name, another_long_column_name\n" + 
-                    "    , and_another_name_also_long\n" + 
-                    "    , \"and a long double quoted column name\"\n" + 
-                    "    , \"and let's do another long double quoted column name\" ) as not materialized (select 'a somewhat longer text literal')", output);
+                    "\"this is a with query with an absurdly long double quoted name to enforce a line break\" \n"
+                    + "        ( some_long_column_name, another_long_column_name\n"
+                    + "        , and_another_name_also_long\n"
+                    + "        , \"and a long double quoted column name\"\n"
+                    + "        , \"and let's do another long double quoted column name\" ) as not materialized (select 'a somewhat longer text literal')", output);
 //@formatter:on
         }
     }

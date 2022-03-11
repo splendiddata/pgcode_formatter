@@ -5,9 +5,9 @@ CREATE OR REPLACE FUNCTION "increment"
 AS $function$
 BEGIN
     a := CASE
-            WHEN b THEN true
-            ELSE false
-        END;
+             WHEN b THEN true
+             ELSE false
+         END;
     RETURN 'test';
 END;
 $function$
@@ -33,7 +33,6 @@ LANGUAGE plpythonu;
 CREATE OR REPLACE FUNCTION plpgsql_inline_handler_test(internal)
 RETURNS void
 LANGUAGE c STRICT
-AS '$libdir/plpgsql' /* comment test */
-    , $function$plpgsql_inline_handler$function$
+AS '$libdir/plpgsql' /* comment test */ , $function$plpgsql_inline_handler$function$
 security definer
 not leakproof;

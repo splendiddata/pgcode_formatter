@@ -57,8 +57,7 @@ public class SemiColonNode extends SrcNode {
     @Override
     public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult, FormatConfiguration config) {
         if (parentResult != null) {
-            parentResult.removeTrailingLineFeeds();
-            parentResult.removeTrailingSpaces();
+            parentResult.positionAfterLastNonWhitespace();
         }
         return new RenderItem(";", this, RenderItemType.SEMI_COLON);
     }

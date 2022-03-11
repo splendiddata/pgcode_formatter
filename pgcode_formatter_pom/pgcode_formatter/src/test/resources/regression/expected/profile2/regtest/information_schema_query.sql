@@ -6,7 +6,7 @@ SELECT DISTINCT
 	(nt.nspname)::information_schema.sql_identifier AS table_schema,
 	(t.relname)::information_schema.sql_identifier AS table_name
 	FROM
-	pg_namespace nv, pg_class v, pg_depend dv, pg_depend dt, pg_class t, pg_namespace nt
+		pg_namespace nv, pg_class v, pg_depend dv, pg_depend dt, pg_class t, pg_namespace nt
 	WHERE
 		(
 		(
@@ -20,8 +20,7 @@ SELECT DISTINCT
 										(
 											(
 												(
-													((nv.oid = v.relnamespace) AND (v.relkind = 'v'::"char")) AND
-													(v.oid = dv.refobjid)
+													((nv.oid = v.relnamespace) AND (v.relkind = 'v'::"char")) AND (v.oid = dv.refobjid)
 													) AND (dv.refclassid = ('pg_class'::REGCLASS)::OID)
 												) AND (dv.classid = ('pg_rewrite'::REGCLASS)::OID)
 											) AND (dv.deptype = 'i'::"char")

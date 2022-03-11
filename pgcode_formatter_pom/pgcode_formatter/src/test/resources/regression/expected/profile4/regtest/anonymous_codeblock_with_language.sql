@@ -6,5 +6,4 @@ BEGIN
     raise notice 'Value: %', r;
 END
 $$
-LANGUAGE
-plpgsql;
+LANGUAGE plpgsql;

@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -79,30 +76,35 @@ public class JustAStatementNode extends SrcNode {
     @Override
     public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
+        }
         int availableWidth = formatContext.getAvailableWidth();
-        String standardIndent = FormatContext.indent(true);
         ScanResult node = this.getStartScanResult();
-        RenderMultiLines result = new RenderMultiLines(node, formatContext);
+        renderResult = new RenderMultiLines(node, formatContext, parentResult)
+                .setIndentBase(parentResult == null ? 0 : parentResult.getPosition())
+                .setIndent(config.getStandardIndent());
         for (; node != null; node = node.getNext()) {
-            RenderResult intermediate = node
-                    .beautify(formatContext.setAvailableWidth(availableWidth - result.getPosition()), result, config);
-            if (result.getPosition() > standardIndent.length() && (intermediate.getHeight() > 1
-                    || result.getPosition() + intermediate.getWidth() > availableWidth)) {
-                RenderResult attempt2 = node.beautify(
-                        formatContext.setAvailableWidth(availableWidth - standardIndent.length()), result, config);
-                if (attempt2.getHeight() < intermediate.getHeight()
-                        || result.getPosition() + intermediate.getWidth() > availableWidth) {
-                    result.addLine();
-                    result.addRenderResult(attempt2, formatContext);
+            RenderResult intermediate = node.beautify(formatContext, renderResult, config);
+            if (renderResult.getPosition() > config.getStandardIndent()
+                    && (intermediate.getHeight() > 1 || renderResult.getPosition()
+                            + intermediate.getWidthFirstLine() > config.getLineWidth().getValue())) {
+                RenderMultiLines renderResultClone = renderResult.clone().addLine();
+                RenderResult attempt2 = node.beautify(formatContext, renderResultClone, config);
+                if (attempt2.getHeight() < intermediate.getHeight() || intermediate.getWidthFirstLine()
+                        + renderResult.getPosition() > config.getLineWidth().getValue()) {
+                    renderResult = renderResultClone;
+                    renderResult.addRenderResult(attempt2, formatContext);
                 } else {
-                    result.addRenderResult(intermediate, formatContext);
+                    renderResult.addRenderResult(intermediate, formatContext);
                 }
             } else {
-                result.addRenderResult(intermediate, formatContext);
+                renderResult.addRenderResult(intermediate, formatContext);
             }
         }
         formatContext.setAvailableWidth(availableWidth); // restore
-        return result;
+        return cacheRenderResult(renderResult, formatContext, parentResult);
     }
 
     /**

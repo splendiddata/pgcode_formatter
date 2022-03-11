@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.internal;
@@ -35,6 +32,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.splendiddata.pgcode.formatter.*;
+import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.TabsOrSpacesType;
 import com.splendiddata.pgcode.formatter.scanner.ScanResult;
 import com.splendiddata.pgcode.formatter.scanner.ScanResultStringLiteral;
 import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
@@ -51,6 +49,12 @@ public final class Util {
      * The linefeed character(s) for the operating system
      */
     public static final String LF = System.lineSeparator();
+
+    /**
+     * A pattern containing just a linefeed. Might be usefull splitting lines on linefeed characters.
+     */
+    public static final Pattern NEWLINE_PATTERN = Pattern.compile("\\n");
+
     private static final Logger log = LogManager.getLogger(Util.class);
     /**
      * Cache of strings with a specified number of spaces
@@ -80,6 +84,9 @@ public final class Util {
      * @return String with n spaces
      */
     public static String nSpaces(int n) {
+        if (n <= 0) {
+            return "";
+        }
         String result = spacesCache.get(Integer.valueOf(n));
         if (result == null) {
             byte[] bytes = new byte[n];
@@ -187,24 +194,47 @@ public final class Util {
             log.trace("renderStraightForward invoked from " + Thread.currentThread().getStackTrace()[2]);
         }
         int availableWidth = formatContext.getAvailableWidth();
-        int standardIndent = FormatContext.indent(true).length();
+        int standardIndent = renderResult.getLocalIndent();
         FormatContext itemContext = new FormatContext(config, formatContext)
                 .setAvailableWidth(availableWidth - standardIndent);
         for (ScanResult srcNode = fromScanResult; srcNode != null; srcNode = srcNode.getNext()) {
-            RenderResult itemResult = srcNode.beautify(itemContext, renderResult, config);
+            int itemWidth = srcNode.getSingleLineWidth(config);
             int pos = renderResult.getPosition();
-            if (pos > standardIndent && renderResult.getPosition() + itemResult.getWidth() > availableWidth) {
+            if (pos > standardIndent && itemWidth >= 0 && pos + itemWidth > config.getLineWidth().getValue()
+                    && !(srcNode instanceof InParentheses || srcNode instanceof CommaSeparatedList)) {
                 renderResult.addLine();
-                renderResult.addRenderResult(srcNode.beautify(itemContext, renderResult, config), formatContext);
-            } else if (itemResult.getHeight() > 1) {
-                renderResult.setIndent(pos);
-                renderResult.addRenderResult(srcNode.beautify(itemContext, renderResult, config), formatContext);
-                renderResult.setIndent(standardIndent);
-            } else {
-                renderResult.addRenderResult(itemResult, formatContext);
             }
+            renderResult.addRenderResult(srcNode.beautify(itemContext, renderResult, config), formatContext);
         }
         return renderResult;
+    }
+
+    /**
+     * Invokes (@link ScanResult#getSingleLineWidth(FormatConfiguration)} on fromScanResult, and probably its following
+     * nodes, to determine the total line length if rendered into a single line. As soon as the first ScanResult returns
+     * a negative number, a negative number is returned to indicate that rendering on a single line will not succeed.
+     *
+     * @param fromScanResult
+     *            The ScanResul to start with in determining the total expected line length
+     * @param config
+     *            May be used to get a max linelength
+     * @return The total expected linelength or a negative number if rendering will need more than one line.
+     */
+    public static int getSingleLineWidth(ScanResult fromScanResult, FormatConfiguration config) {
+        if (log.isTraceEnabled()) {
+            log.trace("getSingleLineWidth invoked from " + Thread.currentThread().getStackTrace()[2]);
+        }
+        int expectedWidth = 0;
+        int additionalWidth;
+        for (ScanResult srcNode = fromScanResult; srcNode != null; srcNode = srcNode.getNext()) {
+            additionalWidth = srcNode.getSingleLineWidth(config);
+            if (additionalWidth < 0) {
+                expectedWidth = -1;
+                break;
+            }
+            expectedWidth += additionalWidth;
+        }
+        return expectedWidth;
     }
 
     /**
@@ -298,7 +328,7 @@ public final class Util {
                 }
 
                 FormatContext formatContext = new FormatContext(config, null);
-                RenderMultiLines result = new RenderMultiLines(null, formatContext).setIndent(0);
+                RenderMultiLines result = new RenderMultiLines(null, formatContext, null);
 
                 /*
                  * First deal with empty lines
@@ -507,22 +537,45 @@ public final class Util {
     }
 
     /**
+     * Replaces groups of tab characters by spaces if the config desires so.
+     * <ul>
+     * <li>If configuration-&gt;tabs-&gt;tabsOrSpaces equals TABS then all groups of spaces that can be replaced by tab
+     * characters will be.</li>
+     * <li>Else if configuration-&gt;indent-&gt;tabsOrSpaces equals TABS then only leading spaces are replaced by
+     * tabs</li>
+     * <li>Otherwise the original text is returned</li>
+     * </ul>
+     *
+     * @param config
+     *            The configuration that will provide the tabs and indent setting
+     * @param textWithSpaces
+     *            The text of which groups of spaces may be replaced by tabs
+     * @return The resulting string
+     */
+    public static String performTabReplacement(FormatConfiguration config, String textWithSpaces) {
+        String result = textWithSpaces;
+        if (TabsOrSpacesType.TABS.equals(config.getTabs().getTabsOrSpaces())) {
+            result = replaceSpacesByTabs(config, result);
+        } else if (TabsOrSpacesType.TABS.equals(config.getIndent().getTabsOrSpaces())) {
+            result = replaceLeadingSpaces(config, result);
+        }
+        return result;
+    }
+
+    /**
      * Replaces spaces by tabs, based on the provided regular expression patterns, in the provided string.
      * 
      * @param config
      *            A FormatConfiguration where the tabWidth is defined.
-     * @param tabSplitPattern
-     *            A tab split pattern
-     * @param tabReplacementPattern
-     *            A tab replacement pattern
-     * @param functionBody
+     * @param textWithSpaces
      *            The String that has to be adapted
      * @return The adapted String
      */
-    public static String replaceSpacesByTabs(FormatConfiguration config, Pattern tabSplitPattern,
-            Pattern tabReplacementPattern, String functionBody) {
-        LinkedList<SplitData> split = parseInput(functionBody);
+    private static String replaceSpacesByTabs(FormatConfiguration config, String textWithSpaces) {
+        LinkedList<SplitData> split = parseInput(textWithSpaces);
         String partString;
+        Pattern tabSplitPattern = config.getTabSplitPattern();
+        Pattern tabReplacementPattern = config.getTabReplacementPattern();
 
         StringBuilder buildResult = new StringBuilder();
         int tabWidth = config.getTabs().getTabWidth().intValue();
@@ -550,15 +603,13 @@ public final class Util {
      * 
      * @param config
      *            A FormatConfiguration where the tabWidth is defined.
-     * @param leadingSpacesPattern
-     *            A leading spaces pattern
-     * @param functionBody
+     * @param textWithLeadingSpaces
      *            The String that has to be adapted
      * @return The adapted String
      */
-    public static String replaceLeadingSpaces(FormatConfiguration config, Pattern leadingSpacesPattern,
-            String functionBody) {
-        LinkedList<SplitData> split = parseInput(functionBody);
+    private static String replaceLeadingSpaces(FormatConfiguration config, String textWithLeadingSpaces) {
+        Pattern leadingSpacesPattern = config.getLeadingSpacesPattern();
+        LinkedList<SplitData> split = parseInput(textWithLeadingSpaces);
         String partString;
         StringBuilder buildResult = new StringBuilder();
 

@@ -135,7 +135,7 @@ public class QualifiedIdentifierNode extends IdentifierNode {
     @Override
     public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
+        RenderMultiLines result = new RenderMultiLines(this, formatContext, parentResult);
         for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
             switch (node.getType()) {
             case WHITESPACE:

@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter;
@@ -23,6 +20,7 @@ import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import javax.xml.XMLConstants;
 import jakarta.xml.bind.JAXBContext;
@@ -62,11 +60,27 @@ public class FormatConfiguration {
      */
     public static final String DEFAULT_CONFIG_PATH = "/com/splendiddata/pgcode/formatter/DefaultConfig.xml";
     private static final Logger log = LogManager.getLogger(FormatConfiguration.class);
+    private static final ObjectFactory factory = new ObjectFactory();
 
     /**
      * The configuration to be used, with all null-fields filled in with default values
      */
-    private static Configuration effectiveConfiguration;
+    private Configuration effectiveConfiguration;
+    private int standardIndent;
+
+    /*
+     * If all groups of spaces are to be replaced with tabs then the tabSplitPattern will be created. It will split up
+     * every line in chunks of tab-width characters so that later trailing spaces in each chunk can be replaces with a
+     * single tab character
+     */
+    private Pattern tabSplitPattern;
+    private Pattern tabReplacementPattern;;
+
+    /*
+     * If only the indent is to be replaced by tabs, then the leadingSpacesPattern will be filled to help replacing
+     * leading spaces by tabs
+     */
+    private Pattern leadingSpacesPattern = tabSplitPattern;
 
     /**
      * Constructor
@@ -97,6 +111,7 @@ public class FormatConfiguration {
 
     /**
      * Constructor
+     * 
      * @param configFileContent
      *            The string containing the content of the config xml file. If null, the default config will be used.
      * @param pathName
@@ -138,11 +153,17 @@ public class FormatConfiguration {
         effectiveConfiguration = completeConfig(providedConfig);
     }
 
-    public static Configuration getEffectiveConfiguration() {
-        if (effectiveConfiguration == null) {
-            effectiveConfiguration = DefaultConfigCreator.getConfiguration();
-        }
-        return effectiveConfiguration;
+    /**
+     * Copy constructor
+     * <p>
+     * The original FormatConfiguration is deep copied. The original is supposed to be valid.
+     *
+     * @param original
+     *            The FormatConfiguration to copy.
+     */
+    public FormatConfiguration(FormatConfiguration original) {
+        effectiveConfiguration = ConfigUtil.copy(original.effectiveConfiguration);
+        standardIndent = original.getStandardIndent();
     }
 
     /**
@@ -188,7 +209,8 @@ public class FormatConfiguration {
      * Creates a new {@link Validator} for plpgsql_code_formatter-v1_0.xsd
      *
      * @return The created validator
-     * @throws SAXException If a SAX error occurs when trying to create a schema
+     * @throws SAXException
+     *             If a SAX error occurs when trying to create a schema
      */
     private static Validator constructValidator() throws SAXException {
         XmlValidationErrorHandler errorHandler = new XmlValidationErrorHandler();
@@ -209,7 +231,7 @@ public class FormatConfiguration {
      * @return Configuration The effective config, where all missing fields from the providedConfig are filled in with
      *         defaults.
      */
-    private static Configuration completeConfig(Configuration providedConfig) {
+    private Configuration completeConfig(Configuration providedConfig) {
         Configuration defaultConfig = null;
 
         /*
@@ -232,10 +254,10 @@ public class FormatConfiguration {
 
         if (providedConfig == null) {
             log.info("No config provided, default settings will be used");
+            standardIndent = defaultConfig.getIndent().getIndentWidth().intValue();
             return defaultConfig;
         }
 
-        final ObjectFactory factory = new ObjectFactory();
         Configuration effectiveConfig = ConfigUtil.copy(providedConfig);
 
         /*
@@ -295,7 +317,7 @@ public class FormatConfiguration {
                 effectiveConfig.getIndent().setIndentInnerFunction(Boolean.FALSE);
             }
         }
-
+        standardIndent = effectiveConfig.getIndent().getIndentWidth().intValue();
         /*
          * query config
          */
@@ -328,70 +350,20 @@ public class FormatConfiguration {
         /*
          * case operand when operand then ...
          */
-        if (effectiveConfig.getCaseOperand() == null) {
-            effectiveConfig.setCaseOperand(defaultConfig.getCaseOperand());
-        } else {
-            CaseType effectiveCase = effectiveConfig.getCaseOperand();
-            CaseType defaultCase = defaultConfig.getCaseOperand();
-            if (effectiveCase.getMaxSingleLineClause() == null) {
-                effectiveCase.setMaxSingleLineClause(defaultCase.getMaxSingleLineClause());
-            } else if (effectiveCase.getMaxSingleLineClause().getWeight() == null) {
-                effectiveCase.getMaxSingleLineClause().setWeight(defaultCase.getMaxSingleLineClause().getWeight());
-            }
-            if (effectiveCase.getWhenPosition() == null) {
-                effectiveCase.setWhenPosition(defaultCase.getWhenPosition());
-            } else if (effectiveCase.getWhenPosition().getWeight() == null) {
-                effectiveCase.getWhenPosition().setWeight(defaultCase.getWhenPosition().getWeight());
-            }
-            if (effectiveCase.getThenPosition() == null) {
-                effectiveCase.setThenPosition(defaultCase.getThenPosition());
-            } else if (effectiveCase.getThenPosition().getWeight() == null) {
-                effectiveCase.getThenPosition().setWeight(defaultCase.getThenPosition().getWeight());
-            }
-            if (effectiveCase.getElsePosition() == null) {
-                effectiveCase.setElsePosition(defaultCase.getElsePosition());
-            }
-            if (effectiveCase.getEndPosition() == null) {
-                effectiveCase.setEndPosition(defaultCase.getEndPosition());
-            }
-        }
+        effectiveConfig.setCaseOperand(
+                completeCaseType(effectiveConfig.getCaseOperand(), defaultConfig.getCaseOperand(), effectiveConfig));
 
         /*
          * case when condition then ...
          */
-        if (effectiveConfig.getCaseWhen() == null) {
-            effectiveConfig.setCaseWhen(defaultConfig.getCaseWhen());
-        } else {
-            CaseType effectiveCase = effectiveConfig.getCaseWhen();
-            CaseType defaultCase = defaultConfig.getCaseWhen();
-            if (effectiveCase.getMaxSingleLineClause() == null) {
-                effectiveCase.setMaxSingleLineClause(defaultCase.getMaxSingleLineClause());
-            } else if (effectiveCase.getMaxSingleLineClause().getWeight() == null) {
-                effectiveCase.getMaxSingleLineClause().setWeight(defaultCase.getMaxSingleLineClause().getWeight());
-            }
-            if (effectiveCase.getWhenPosition() == null) {
-                effectiveCase.setWhenPosition(defaultCase.getWhenPosition());
-            } else if (effectiveCase.getWhenPosition().getWeight() == null) {
-                effectiveCase.getWhenPosition().setWeight(defaultCase.getWhenPosition().getWeight());
-            }
-            if (effectiveCase.getThenPosition() == null) {
-                effectiveCase.setThenPosition(defaultCase.getThenPosition());
-            } else if (effectiveCase.getThenPosition().getWeight() == null) {
-                effectiveCase.getThenPosition().setWeight(defaultCase.getThenPosition().getWeight());
-            }
-            if (effectiveCase.getElsePosition() == null) {
-                effectiveCase.setElsePosition(defaultCase.getElsePosition());
-            }
-            if (effectiveCase.getEndPosition() == null) {
-                effectiveCase.setEndPosition(defaultCase.getEndPosition());
-            }
-        }
+        effectiveConfig.setCaseWhen(
+                completeCaseType(effectiveConfig.getCaseWhen(), defaultConfig.getCaseWhen(), effectiveConfig));
 
         /*
          * commaSeparatedListGrouping
          */
         effectiveConfig.setCommaSeparatedListGrouping(completeCommaSeparatedListGrouping(
-                effectiveConfig.getCommaSeparatedListGrouping(), defaultConfig.getCommaSeparatedListGrouping(), factory,
+                effectiveConfig.getCommaSeparatedListGrouping(), defaultConfig.getCommaSeparatedListGrouping(),
                 () -> factory.createCommaSeparatedListGroupingType()));
 
         /*
@@ -400,25 +372,25 @@ public class FormatConfiguration {
         effectiveConfig.setFunctionDefinitionArgumentGrouping(
                 completeFunctionDefinitionArgumentGroupingType(providedConfig.getFunctionDefinitionArgumentGrouping(),
                         defaultConfig.getFunctionDefinitionArgumentGrouping(),
-                        effectiveConfig.getCommaSeparatedListGrouping(), factory));
+                        effectiveConfig.getCommaSeparatedListGrouping()));
 
         /*
          * table definition
          */
         effectiveConfig.setTableDefinition(completeTableDefinitionType(providedConfig.getTableDefinition(),
-                defaultConfig.getTableDefinition(), effectiveConfig.getCommaSeparatedListGrouping(), factory));
+                defaultConfig.getTableDefinition(), effectiveConfig.getCommaSeparatedListGrouping()));
 
         /*
          * From item grouping
          */
         effectiveConfig.setFromItemGrouping(completeFromItemGroupingType(providedConfig.getFromItemGrouping(),
-                effectiveConfig.getCommaSeparatedListGrouping(), defaultConfig.getFromItemGrouping(), factory));
+                effectiveConfig.getCommaSeparatedListGrouping(), defaultConfig.getFromItemGrouping()));
 
         /*
          * Target list grouping
          */
         effectiveConfig.setTargetListGrouping(completeCommaSeparatedListGrouping(
-                effectiveConfig.getTargetListGrouping(), effectiveConfig.getCommaSeparatedListGrouping(), factory,
+                effectiveConfig.getTargetListGrouping(), effectiveConfig.getCommaSeparatedListGrouping(),
                 () -> factory.createCommaSeparatedListGroupingType()));
 
         /*
@@ -426,7 +398,7 @@ public class FormatConfiguration {
          */
         effectiveConfig.setFunctionCallArgumentGrouping(completeCommaSeparatedListGrouping(
                 effectiveConfig.getFunctionCallArgumentGrouping(), effectiveConfig.getCommaSeparatedListGrouping(),
-                factory, () -> factory.createCommaSeparatedListGroupingType()));
+                () -> factory.createCommaSeparatedListGroupingType()));
 
         if (effectiveConfig.getLogicalOperatorsIndent() == null) {
             effectiveConfig.setLogicalOperatorsIndent(defaultConfig.getLogicalOperatorsIndent());
@@ -440,10 +412,78 @@ public class FormatConfiguration {
             effectiveConfig.setLetterCaseKeywords(defaultConfig.getLetterCaseKeywords());
         }
 
-        effectiveConfig.setLanguagePlpgsql(completeLanguagePlpgsql(providedConfig.getLanguagePlpgsql(),
-                defaultConfig.getLanguagePlpgsql(), factory));
+        effectiveConfig.setLanguagePlpgsql(
+                completeLanguagePlpgsql(providedConfig.getLanguagePlpgsql(), defaultConfig.getLanguagePlpgsql()));
 
         return effectiveConfig;
+    }
+
+    /**
+     * Combines the provided config with the effective config filling in null values with defaultvalues
+     *
+     * @param providedCaseType
+     *            The CaseType from the config file
+     * @param defaultCaseType
+     *            The default CaseType
+     * @param effectiveConfig
+     *            To provide a maxLineWidth where applicable
+     * @return CaseType The effective CaseType to use
+     */
+    private static CaseType completeCaseType(CaseType providedCaseType, CaseType defaultCaseType,
+            Configuration effectiveConfig) {
+        CaseType effectiveCaseType = ConfigUtil.copy(defaultCaseType);
+        if (providedCaseType == null) {
+            effectiveCaseType.getThenPosition()
+                    .setMaxPosition(Integer.valueOf(effectiveConfig.getLineWidth().getValue()));
+            return effectiveCaseType;
+        }
+        if (providedCaseType.getMaxSingleLineClause() == null) {
+            effectiveCaseType.setMaxSingleLineClause(defaultCaseType.getMaxSingleLineClause());
+        } else {
+            effectiveCaseType.setMaxSingleLineClause(providedCaseType.getMaxSingleLineClause());
+            if (providedCaseType.getMaxSingleLineClause().getWeight() == null) {
+                effectiveCaseType.getMaxSingleLineClause()
+                        .setWeight(defaultCaseType.getMaxSingleLineClause().getWeight());
+            }
+        }
+        if (providedCaseType.getWhenPosition() == null) {
+            effectiveCaseType.setWhenPosition(defaultCaseType.getWhenPosition());
+        } else {
+            effectiveCaseType.setWhenPosition(providedCaseType.getWhenPosition());
+            if (providedCaseType.getWhenPosition().getWeight() == null) {
+                effectiveCaseType.getWhenPosition().setWeight(defaultCaseType.getWhenPosition().getWeight());
+            }
+        }
+        if (providedCaseType.getThenPosition() == null) {
+            effectiveCaseType.setThenPosition(defaultCaseType.getThenPosition());
+        } else {
+            effectiveCaseType.setThenPosition(providedCaseType.getThenPosition());
+            if (effectiveCaseType.getThenPosition().getWeight() == null) {
+                effectiveCaseType.getThenPosition().setWeight(defaultCaseType.getThenPosition().getWeight());
+            }
+            if (effectiveCaseType.getThenPosition().getMinPosition() == null) {
+                effectiveCaseType.getThenPosition().setMinPosition(defaultCaseType.getThenPosition().getMinPosition());
+            }
+            if (effectiveCaseType.getThenPosition().getMaxPosition() == null) {
+                effectiveCaseType.getThenPosition()
+                        .setMaxPosition(Integer.valueOf(effectiveConfig.getLineWidth().getValue()));
+            }
+            if (effectiveCaseType.getThenPosition().getFallbackPosition() == null) {
+                effectiveCaseType.getThenPosition()
+                        .setFallbackPosition(defaultCaseType.getThenPosition().getFallbackPosition());
+            }
+        }
+        if (providedCaseType.getElsePosition() == null) {
+            effectiveCaseType.setElsePosition(defaultCaseType.getElsePosition());
+        } else {
+            effectiveCaseType.setElsePosition(providedCaseType.getElsePosition());
+        }
+        if (providedCaseType.getEndPosition() == null) {
+            effectiveCaseType.setEndPosition(defaultCaseType.getEndPosition());
+        } else {
+            effectiveCaseType.setEndPosition(providedCaseType.getEndPosition());
+        }
+        return effectiveCaseType;
     }
 
     /**
@@ -456,19 +496,16 @@ public class FormatConfiguration {
      *            the providedGrouping
      * @param defaultGrouping
      *            FromItemGroupingType from the defined default config file
-     * @param factory
-     *            ObjectFactory to create the necessary objects
      * @return FromItemGroupingType from the providedGrouping combined (where necessary) with defaults
      */
     private static FromItemGroupingType completeFromItemGroupingType(FromItemGroupingType providedGrouping,
-            CommaSeparatedListGroupingType effectiveCommaSeparatedListGrouping, FromItemGroupingType defaultGrouping,
-            ObjectFactory factory) {
+            CommaSeparatedListGroupingType effectiveCommaSeparatedListGrouping, FromItemGroupingType defaultGrouping) {
         FromItemGroupingType effectiveGrouping = ConfigUtil.copy(defaultGrouping);
         if (providedGrouping == null) {
             return effectiveGrouping;
         }
         effectiveGrouping.setAliasAlignment(completeRelativePositionType(providedGrouping.getAliasAlignment(),
-                defaultGrouping.getAliasAlignment(), factory));
+                defaultGrouping.getAliasAlignment()));
         if (providedGrouping.getComma() == null) {
             effectiveGrouping.setComma(effectiveCommaSeparatedListGrouping.getCommaBeforeOrAfter());
         } else {
@@ -476,7 +513,7 @@ public class FormatConfiguration {
         }
         if (providedGrouping.getMaxSingleLineLength() != null) {
             effectiveGrouping.setMaxSingleLineLength(completeIntegerValueOption(
-                    providedGrouping.getMaxSingleLineLength(), defaultGrouping.getMaxSingleLineLength(), factory));
+                    providedGrouping.getMaxSingleLineLength(), defaultGrouping.getMaxSingleLineLength()));
         }
         if (providedGrouping.isMultilineOpeningParenBeforeArgument() == null) {
             effectiveGrouping.setMultilineOpeningParenBeforeArgument(
@@ -507,7 +544,7 @@ public class FormatConfiguration {
      * @return IntegerValueOption The configuredValue or the defaultValue or a combination
      */
     private static final IntegerValueOption completeIntegerValueOption(IntegerValueOption configuredValue,
-            IntegerValueOption defaultValue, ObjectFactory factory) {
+            IntegerValueOption defaultValue) {
         if (configuredValue == null) {
             return defaultValue;
         }
@@ -530,17 +567,13 @@ public class FormatConfiguration {
      *            The CommaSeparatedListGroupingType from the config file. May be null.
      * @param defaultConfig
      *            The default CommaSeparatedListGroupingType
-     * @param factory
-     *            Used to create a new indent, maxArgumentsPerGtroup, maxLengthOfGroup and maxSingleLineLength if
-     *            necessary
      * @param csListGrouptingTypefactory
      *            The object factory method that returns the right subclass of the comma separated list
      * @return CommaSeparatedListGroupingType The defaultConfig if providedConfig was null or a copy of the
      *         providedConfig with all null values filled in
      */
     public static final <T extends CommaSeparatedListGroupingType> T completeCommaSeparatedListGrouping(
-            T providedConfig, CommaSeparatedListGroupingType defaultConfig, ObjectFactory factory,
-            Supplier<T> csListGrouptingTypefactory) {
+            T providedConfig, CommaSeparatedListGroupingType defaultConfig, Supplier<T> csListGrouptingTypefactory) {
         T result = csListGrouptingTypefactory.get();
         if (providedConfig == null) {
             result.setMultilineClosingParenOnNewLine(defaultConfig.isMultilineClosingParenOnNewLine());
@@ -566,14 +599,14 @@ public class FormatConfiguration {
             } else {
                 result.setCommaBeforeOrAfter(providedConfig.getCommaBeforeOrAfter());
             }
-            result.setIndent(completeCommaSeparatedListIndentType(providedConfig.getIndent(), defaultConfig.getIndent(),
-                    factory));
+            result.setIndent(
+                    completeCommaSeparatedListIndentType(providedConfig.getIndent(), defaultConfig.getIndent()));
             result.setMaxArgumentsPerGroup(completeIntegerValueOption(providedConfig.getMaxArgumentsPerGroup(),
-                    defaultConfig.getMaxArgumentsPerGroup(), factory));
+                    defaultConfig.getMaxArgumentsPerGroup()));
             result.setMaxLengthOfGroup(completeIntegerValueOption(providedConfig.getMaxLengthOfGroup(),
-                    defaultConfig.getMaxLengthOfGroup(), factory));
+                    defaultConfig.getMaxLengthOfGroup()));
             result.setMaxSingleLineLength(completeIntegerValueOption(providedConfig.getMaxSingleLineLength(),
-                    defaultConfig.getMaxSingleLineLength(), factory));
+                    defaultConfig.getMaxSingleLineLength()));
         }
         return result;
     }
@@ -589,29 +622,33 @@ public class FormatConfiguration {
      *            defaultCsListConfig.
      * @param defaultCsListConfig
      *            The default CommaSeparatedListGroupingType
-     * @param factory
-     *            Used to create a new indent, maxArgumentsPerGtroup, maxLengthOfGroup and maxSingleLineLength if
-     *            necessary
      * @return FunctionArgumentGroupingType with all values filled
      */
     private static final FunctionDefinitionArgumentGroupingType completeFunctionDefinitionArgumentGroupingType(
             FunctionDefinitionArgumentGroupingType providedConfig, FunctionDefinitionArgumentGroupingType defaultConfig,
-            CommaSeparatedListGroupingType defaultCsListConfig, ObjectFactory factory) {
+            CommaSeparatedListGroupingType defaultCsListConfig) {
         FunctionDefinitionArgumentGroupingType result = ConfigUtil.copy(defaultConfig);
         if (providedConfig == null) {
-            result.setArgumentGrouping(defaultCsListConfig);
+            result.setArgumentGrouping(ConfigUtil.copy(defaultCsListConfig));
         } else {
             result.setArgumentGrouping(completeCommaSeparatedListGrouping(providedConfig.getArgumentGrouping(),
-                    defaultCsListConfig, factory, () -> factory.createCommaSeparatedListGroupingType()));
-            result.setArgumentName(completeRelativePositionType(providedConfig.getArgumentName(),
-                    defaultConfig.getArgumentName(), factory));
-            result.setDataType(
-                    completeRelativePositionType(providedConfig.getDataType(), defaultConfig.getDataType(), factory));
-            result.setDefaultValue(completeRelativePositionType(providedConfig.getDefaultValue(),
-                    defaultConfig.getDefaultValue(), factory));
+                    defaultCsListConfig, () -> factory.createCommaSeparatedListGroupingType()));
+            result.setArgumentName(
+                    completeRelativePositionType(providedConfig.getArgumentName(), defaultConfig.getArgumentName()));
+            result.setDataType(completeRelativePositionType(providedConfig.getDataType(), defaultConfig.getDataType()));
+            result.setDefaultValue(
+                    completeRelativePositionType(providedConfig.getDefaultValue(), defaultConfig.getDefaultValue()));
             if (providedConfig.getDefaultIndicator() != null) {
                 result.setDefaultIndicator(providedConfig.getDefaultIndicator());
             }
+        }
+        if (!RelativePositionTypeEnum.SUBSEQUENT.equals(result.getArgumentName().getAlignment())
+                || !RelativePositionTypeEnum.SUBSEQUENT.equals(result.getDataType().getAlignment())
+                || !RelativePositionTypeEnum.SUBSEQUENT.equals(result.getDefaultValue().getAlignment())) {
+            IntegerValueOption maxArgsPerGroup = factory.createIntegerValueOption();
+            maxArgsPerGroup.setValue(1);
+            maxArgsPerGroup.setWeight(Float.MAX_VALUE);
+            result.getArgumentGrouping().setMaxArgumentsPerGroup(maxArgsPerGroup);
         }
         return result;
     }
@@ -623,12 +660,10 @@ public class FormatConfiguration {
      *            The RelativePositionType from the provided config file (may be null)
      * @param defaultConfig
      *            The RelativePositionType from the default config
-     * @param factory
-     *            To create a new RelativePositionType is necessary
      * @return RelativePositionType without null values
      */
     private static RelativePositionType completeRelativePositionType(RelativePositionType providedConfig,
-            RelativePositionType defaultConfig, ObjectFactory factory) {
+            RelativePositionType defaultConfig) {
         if (providedConfig == null) {
             return defaultConfig;
         }
@@ -655,20 +690,15 @@ public class FormatConfiguration {
      *            defaultCsListConfig.
      * @param defaultCsListConfig
      *            The default CommaSeparatedListGroupingType
-     * @param factory
-     *            Used to create a new indent, maxArgumentsPerGtroup, maxLengthOfGroup and maxSingleLineLength if
-     *            necessary
      * @return TableDefinitionType with all values filled
      */
     private static final TableDefinitionType completeTableDefinitionType(TableDefinitionType providedConfig,
-            TableDefinitionType defaultConfig, CommaSeparatedListGroupingType defaultCsListConfig,
-            ObjectFactory factory) {
+            TableDefinitionType defaultConfig, CommaSeparatedListGroupingType defaultCsListConfig) {
         TableDefinitionType result = ConfigUtil.copy(defaultConfig);
         if (providedConfig != null) {
-            result.setDataType(
-                    completeRelativePositionType(providedConfig.getDataType(), defaultConfig.getDataType(), factory));
+            result.setDataType(completeRelativePositionType(providedConfig.getDataType(), defaultConfig.getDataType()));
             result.setColumnContraint(completeColumnConstraintRelativePositionType(providedConfig.getColumnContraint(),
-                    defaultConfig.getColumnContraint(), factory));
+                    defaultConfig.getColumnContraint()));
         }
         CommaSeparatedListGroupingType csListGrouping;
         if (providedConfig == null) {
@@ -676,10 +706,37 @@ public class FormatConfiguration {
             csListGrouping.setCommaBeforeOrAfter(defaultCsListConfig.getCommaBeforeOrAfter());
         } else {
             csListGrouping = completeCommaSeparatedListGrouping(providedConfig.getArgumentGrouping(),
-                    defaultConfig.getArgumentGrouping(), factory, () -> factory.createCommaSeparatedListGroupingType());
+                    defaultConfig.getArgumentGrouping(), () -> factory.createCommaSeparatedListGroupingType());
             if (providedConfig.getArgumentGrouping().getCommaBeforeOrAfter() == null) {
                 csListGrouping.setCommaBeforeOrAfter(defaultCsListConfig.getCommaBeforeOrAfter());
             }
+        }
+        /*
+         * If absolute alignment is in effect for the data type or the column constraint then the argument grouping can
+         * only be one argument per group
+         */
+        switch (result.getDataType().getAlignment()) {
+        case AT_HORIZONTAL_POSITION:
+        case VERTICALLY_ALIGNED:
+            csListGrouping.getMaxArgumentsPerGroup().setValue(1);
+            csListGrouping.getMaxArgumentsPerGroup().setWeight(Float.MAX_VALUE);
+            break;
+        case SUBSEQUENT:
+        default:
+            switch (result.getColumnContraint().getAlignment()) {
+            case AT_HORIZONTAL_POSITION:
+            case UNDER_DATA_TYPE:
+            case VERTICALLY_ALIGNED:
+                csListGrouping.getMaxArgumentsPerGroup().setValue(1);
+                csListGrouping.getMaxArgumentsPerGroup().setWeight(Float.MAX_VALUE);
+                break;
+            case SUBSEQUENT:
+            default:
+                break;
+
+            }
+            break;
+
         }
         result.setArgumentGrouping(csListGrouping);
         return result;
@@ -693,13 +750,10 @@ public class FormatConfiguration {
      *            The ColumnConstraintRelativePositionType from the provided config file (may be null)
      * @param defaultConfig
      *            The ColumnConstraintRelativePositionType from the default config
-     * @param factory
-     *            To create a new ColumnConstraintRelativePositionType is necessary
      * @return ColumnConstraintRelativePositionType without null values
      */
     private static ColumnConstraintRelativePositionType completeColumnConstraintRelativePositionType(
-            ColumnConstraintRelativePositionType providedConfig, ColumnConstraintRelativePositionType defaultConfig,
-            ObjectFactory factory) {
+            ColumnConstraintRelativePositionType providedConfig, ColumnConstraintRelativePositionType defaultConfig) {
         if (providedConfig == null) {
             return defaultConfig;
         }
@@ -723,13 +777,10 @@ public class FormatConfiguration {
      *            The CommaSeparatedListIndentType from the provided config. May be null.
      * @param defaultIndent
      *            The CommaSeparatedListIndentType from the default config - so with no null values
-     * @param factory
-     *            Used to create a new CommaSeparatedListIndentType if necessary
      * @return CommaSeparatedListIndentType The profidedIndent, the defaultIndent or a combination
      */
     private static final CommaSeparatedListIndentType completeCommaSeparatedListIndentType(
-            CommaSeparatedListIndentType providedIndent, CommaSeparatedListIndentType defaultIndent,
-            ObjectFactory factory) {
+            CommaSeparatedListIndentType providedIndent, CommaSeparatedListIndentType defaultIndent) {
         if (providedIndent == null) {
             return defaultIndent;
         }
@@ -757,21 +808,19 @@ public class FormatConfiguration {
      *            The PlpgsqlType from the config file if any. May be null
      * @param defaultSettings
      *            The PlpgsqlType that will provide default values
-     * @param factory
-     *            Tp create new xml beans if necessary
      * @return The combined PlpgsqlType with all fields filled
      */
-    private static final PlpgsqlType completeLanguagePlpgsql(PlpgsqlType providedSettings, PlpgsqlType defaultSettings,
-            ObjectFactory factory) {
+    private static final PlpgsqlType completeLanguagePlpgsql(PlpgsqlType providedSettings,
+            PlpgsqlType defaultSettings) {
         if (providedSettings == null) {
             return defaultSettings;
         }
 
         PlpgsqlType result = factory.createPlpgsqlType();
         result.setDeclareSection(completePlpgsqlDeclareSectionType(providedSettings.getDeclareSection(),
-                defaultSettings.getDeclareSection(), factory));
-        result.setCodeSection(completePlpgsqlCodeSectionType(providedSettings.getCodeSection(),
-                defaultSettings.getCodeSection(), factory));
+                defaultSettings.getDeclareSection()));
+        result.setCodeSection(
+                completePlpgsqlCodeSectionType(providedSettings.getCodeSection(), defaultSettings.getCodeSection()));
 
         return result;
     }
@@ -783,12 +832,10 @@ public class FormatConfiguration {
      *            The PlpgsqlCodeSectionType from the provided config file. May be null
      * @param defaultSettings
      *            The PlpgsqlCodeSectionType that will provide default settings
-     * @param factory
-     *            To create new xml beans if necessary
      * @return PlpgsqlCodeSectionType without null fields
      */
     private static PlpgsqlCodeSectionType completePlpgsqlCodeSectionType(PlpgsqlCodeSectionType providedSettings,
-            PlpgsqlCodeSectionType defaultSettings, ObjectFactory factory) {
+            PlpgsqlCodeSectionType defaultSettings) {
         if (providedSettings == null) {
             return defaultSettings;
         }
@@ -833,13 +880,10 @@ public class FormatConfiguration {
      *            The PlpgsqlDeclareSectionType from the provided config file (if any). May be null
      * @param defaultSettings
      *            The PlpgsqlDeclareSectionType that will provide default values
-     * @param factory
-     *            To create new xml beans if necessary
      * @return PlpgsqlDeclareSectionType with all fields filled
      */
     private static final PlpgsqlDeclareSectionType completePlpgsqlDeclareSectionType(
-            PlpgsqlDeclareSectionType providedSettings, PlpgsqlDeclareSectionType defaultSettings,
-            ObjectFactory factory) {
+            PlpgsqlDeclareSectionType providedSettings, PlpgsqlDeclareSectionType defaultSettings) {
         if (providedSettings == null) {
             return defaultSettings;
         }
@@ -1090,6 +1134,92 @@ public class FormatConfiguration {
      */
     public PlpgsqlType getLanguagePlpgsql() {
         return effectiveConfiguration.getLanguagePlpgsql();
+    }
+
+    /**
+     * Shortcut to get the standard indent setting
+     *
+     * @return int The standard indent width in nr of spaces
+     */
+    public int getStandardIndent() {
+        return standardIndent;
+    }
+
+    /**
+     * When the configuration-&gt;tabs-&gt;tabsOrSpaces setting equals TABS then groups of spaces before a tab position
+     * must be replaced by a tab character. The tabSplitPattern splits up a text line into chunks with the width of tab
+     * positions, of which trailing spaces can easily be replaced by tabs before reuniting the chunks again to lines
+     * (see {@link #getTabReplacementPattern()})
+     * <p>
+     * This method is intended to be used by
+     * {@link com.splendiddata.pgcode.formatter.internal.Util#performTabReplacement(FormatConfiguration, String)}
+     *
+     * @return Pattern
+     */
+    public Pattern getTabSplitPattern() {
+        if (tabSplitPattern == null) {
+            assert TabsOrSpacesType.TABS.equals(getTabs()
+                    .getTabsOrSpaces()) : "getTabSplitPattern() must only be invoked if configuration->tabs->tabsOrSpaces equals 'TABS'";
+            tabSplitPattern = Pattern.compile("(\n)|([^\n]{1," + getTabs().getTabWidth() + "})");
+        }
+        return tabSplitPattern;
+    }
+
+    /**
+     * The tabReplacementPattern can be used to replace trailing spaces. This might be handy when the
+     * configuration-&gt;tabs-&gt;tabsOrSpaces setting equals TABS. The idea is to first split every line into chunks of
+     * tab-width characters using the pattern from {@link #getTabSplitPattern()} and then use the pattern provided here
+     * to replace trailing spaces by tab characters.
+     * <p>
+     * This method is intended to be used by
+     * {@link com.splendiddata.pgcode.formatter.internal.Util#performTabReplacement(FormatConfiguration, String)}
+     * 
+     * @return Pattern
+     */
+    public Pattern getTabReplacementPattern() {
+        if (tabReplacementPattern == null) {
+            assert TabsOrSpacesType.TABS.equals(getTabs()
+                    .getTabsOrSpaces()) : "getTabReplacementPattern() must only be invoked if configuration->tabs->tabsOrSpaces equals 'TABS'";
+            tabReplacementPattern = Pattern.compile("\\s{2,}$");
+        }
+        return tabReplacementPattern;
+    }
+
+    /**
+     * Returns a Pattern that can be used to replace leading spaces with tab characters
+     * <p>
+     * This method is intended to be used by
+     * {@link com.splendiddata.pgcode.formatter.internal.Util#performTabReplacement(FormatConfiguration, String)}
+     *
+     * @return Pattern
+     */
+    public Pattern getLeadingSpacesPattern() {
+        /*
+         * If only the indent is to be replaced by tabs, then the leadingSpacesPattern will be filled to help replacing
+         * leading spaces by tabs
+         */
+        if (leadingSpacesPattern == null) {
+            assert !TabsOrSpacesType.TABS.equals(getTabs().getTabsOrSpaces()) && TabsOrSpacesType.TABS.equals(getIndent()
+                    .getTabsOrSpaces()) : "getLeadingSpacesPattern() must only be invoked if configuration->tabs->tabsOrSpaces equals 'SPACES' and configuration->indent->tabsOrSpaces equals 'TABS'";
+            leadingSpacesPattern = Pattern.compile("\\n([\\s^\\n]+)");
+        }
+        return leadingSpacesPattern;
+    }
+
+    /**
+     * Overwrites the commaSeparatedListGrouping with with the groupingConfig.
+     * <p>
+     * This may help determining if a comma separated list will fit on a single line.
+     *
+     * @param groupingConfig
+     *            The CommaSeparatedListGroupingType that is to be used
+     * @return FormatConfiguration this
+     */
+    public FormatConfiguration setCommaSeparatedListGrouping(CommaSeparatedListGroupingType groupingConfig) {
+        effectiveConfiguration.setCommaSeparatedListGrouping(completeCommaSeparatedListGrouping(groupingConfig,
+                effectiveConfiguration.getCommaSeparatedListGrouping(),
+                () -> factory.createCommaSeparatedListGroupingType()));
+        return this;
     }
 
     private static final class XmlValidationErrorHandler implements ErrorHandler {

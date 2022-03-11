@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
  * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
@@ -14,11 +14,13 @@
 
 package com.splendiddata.pgcode.formatter.internal;
 
-import java.util.Deque;
-import java.util.LinkedList;
+import java.util.Objects;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.splendiddata.pgcode.formatter.ConfigUtil;
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
-import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CaseType;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CommaSeparatedListGroupingType;
 import com.splendiddata.pgcode.formatter.scanner.structure.ArgumentDefinitionOffsets;
 
@@ -27,47 +29,61 @@ import com.splendiddata.pgcode.formatter.scanner.structure.ArgumentDefinitionOff
  * <p>
  * Contains settings that may vary because of the context in which they are used.
  */
-public class FormatContext {
-    private final FormatConfiguration config;
+public class FormatContext implements Cloneable {
+    private static final Logger log = LogManager.getLogger(FormatContext.class);
+
     private final FormatContext parentContext;
-    private final Deque<Integer> indentStack = new LinkedList<>();
 
     private int availableWidth = Integer.MAX_VALUE;
-    private int offset;
     private String language;
     private CommaSeparatedListGroupingType commaSeparatedListGroupingType;
     private ArgumentDefinitionOffsets argumentDefinitionOffsets;
-    private CaseType caseType;
 
     /**
      * Constructor
      *
      * @param config
-     *            The FormatConfiguration to use for this context
+     *            The FormatConfiguration from which the commaSeparatedListGroupingType is taken if the context argument
+     *            is null
      * @param context
      *            The parent parent FormatContext
      */
     public FormatContext(FormatConfiguration config, FormatContext context) {
-        this.config = config;
         parentContext = context;
 
         if (context != null) {
             language = context.getLanguage();
-            offset = context.getOffset();
             if (context.getAvailableWidth() < availableWidth) {
                 availableWidth = context.getAvailableWidth();
             }
-            caseType = context.caseType;
+            commaSeparatedListGroupingType = ConfigUtil.copy(context.commaSeparatedListGroupingType);
+            if (context.argumentDefinitionOffsets != null) {
+                argumentDefinitionOffsets = context.argumentDefinitionOffsets.clone();
+            }
         }
         if (config != null) {
             if (config.getLineWidth().getValue() < availableWidth) {
                 availableWidth = config.getLineWidth().getValue();
             }
+            commaSeparatedListGroupingType = config.getCommaSeparatedListGrouping();
         }
     }
 
-    public FormatConfiguration getConfig() {
-        return config;
+    /**
+     * Copy constructor
+     *
+     * @param original
+     *            The FormatContext to copy
+     */
+    public FormatContext(FormatContext original) {
+        assert original != null : "new FormatContext(null) not allowed";
+        parentContext = original.parentContext;
+        commaSeparatedListGroupingType = ConfigUtil.copy(original.getCommaSeparatedListGrouping());
+        language = original.getLanguage();
+        availableWidth = original.getAvailableWidth();
+        if (original.argumentDefinitionOffsets != null) {
+            argumentDefinitionOffsets = original.argumentDefinitionOffsets.clone();
+        }
     }
 
     /**
@@ -92,15 +108,6 @@ public class FormatContext {
     }
 
     /**
-     * Returns the offset
-     * 
-     * @return The offset
-     */
-    public int getOffset() {
-        return offset;
-    }
-
-    /**
      * Returns the language
      * 
      * @return The language
@@ -122,22 +129,6 @@ public class FormatContext {
     }
 
     /**
-     * Return a string of spaces according to the current indentation level and the spaces setting for indenting.
-     *
-     * @return String spaces
-     * @param newLine
-     *            true for the standard indent, false to ge just a space
-     */
-    public static String indent(boolean newLine) {
-        if (newLine) {
-            return Util
-                    .nSpaces(FormatConfiguration.getEffectiveConfiguration().getIndent().getIndentWidth().intValue());
-        } else {
-            return Util.space;
-        }
-    }
-
-    /**
      * Sets the comma separate list grouping value to be used
      *
      * @param csArgumentGrouping
@@ -145,6 +136,7 @@ public class FormatContext {
      * @return FormatContext this
      */
     public FormatContext setCommaSeparatedListGrouping(CommaSeparatedListGroupingType csArgumentGrouping) {
+        assert csArgumentGrouping != null : "setCommaSeparatedListGrouping(null) not allowed";
         commaSeparatedListGroupingType = csArgumentGrouping;
         return this;
     }
@@ -157,9 +149,6 @@ public class FormatContext {
      *         grouping from the provided config
      */
     public CommaSeparatedListGroupingType getCommaSeparatedListGrouping() {
-        if (commaSeparatedListGroupingType == null) {
-            return config.getCommaSeparatedListGrouping();
-        }
         return commaSeparatedListGroupingType;
     }
 
@@ -184,36 +173,53 @@ public class FormatContext {
     }
 
     /**
-     * Returns the number of spaces that are currently to be used as indent
-     *
-     * @return int the number of spaces from the highest entry in the indent stack
+     * Does a deep equals
+     * 
+     * @see Object#equals(java.lang.Object)
      */
-    public int getIndent() {
-        if (indentStack.isEmpty()) {
-            if (parentContext != null) {
-                return parentContext.getIndent();
-            }
-            return 0;
+    public boolean equals(Object otherObject) {
+        if (otherObject == this) {
+            return true;
         }
-        return indentStack.peek().intValue();
+        if (!(otherObject instanceof FormatContext)) {
+            return false;
+        }
+        FormatContext other = (FormatContext) otherObject;
+        if (this.availableWidth != other.availableWidth) {
+            return false;
+        }
+        if (!Objects.equals(this.language, other.language)) {
+            return false;
+        }
+        if (!ConfigUtil.equals(this.commaSeparatedListGroupingType, other.commaSeparatedListGroupingType)) {
+            return false;
+        }
+        if (!Objects.equals(this.argumentDefinitionOffsets, other.argumentDefinitionOffsets)) {
+            return false;
+        }
+        if (!Objects.equals(this.parentContext, other.parentContext)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
-     * Returns the case type to render an case clause or case statement.
-     *
-     * @return CaseType The caseOperand or caseWhen configuration item
+     * @see java.lang.Object#clone()
      */
-    public CaseType getCaseType() {
-        return caseType;
+    public FormatContext clone() {
+        try {
+            FormatContext clone = (FormatContext) super.clone();
+            if (this.commaSeparatedListGroupingType != null) {
+                clone.commaSeparatedListGroupingType = ConfigUtil.copy(this.commaSeparatedListGroupingType);
+            }
+            if (this.argumentDefinitionOffsets != null) {
+                clone.argumentDefinitionOffsets = this.argumentDefinitionOffsets.clone();
+            }
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            log.error("clone didn't work", e);
+        }
+        return null;
     }
-
-    /**
-     * Sets the case type
-     *
-     * @param caseType
-     */
-    public void setCaseType(CaseType caseType) {
-        this.caseType = caseType;
-    }
-
 }

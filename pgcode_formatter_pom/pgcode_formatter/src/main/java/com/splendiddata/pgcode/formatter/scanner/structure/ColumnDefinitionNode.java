@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020- 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -40,7 +37,7 @@ public class ColumnDefinitionNode extends SrcNode {
     private ScanResult dataType;
     private ScanResult columnConstraints;
 
-    private ArgumentDefinitionOffsets argumentDefinitionOffsets;
+    private int singleLineLength = 0;
 
     /**
      * Constructor
@@ -54,7 +51,7 @@ public class ColumnDefinitionNode extends SrcNode {
         ScanResult lastNonWhitespace = getStartScanResult();
         ScanResult priorNode;
         ScanResult currentNode;
-        
+
         name = lastNonWhitespace;
 
         priorNode = lastNonWhitespace.locatePriorToNextInterpretable();
@@ -126,7 +123,8 @@ public class ColumnDefinitionNode extends SrcNode {
         }
         // for example: timestamp(3) with time zone
         StringBuilder result = new StringBuilder().append(dataType);
-        for (ScanResult node = dataType.getNextInterpretable(); node !=columnConstraints; node = node.getNextInterpretable()) {
+        for (ScanResult node = dataType.getNextInterpretable(); node != columnConstraints; node = node
+                .getNextInterpretable()) {
             result.append(' ').append(node);
         }
         return result.toString();
@@ -150,28 +148,53 @@ public class ColumnDefinitionNode extends SrcNode {
      */
     public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
-        if (argumentDefinitionOffsets == null) {
-            argumentDefinitionOffsets = formatContext.getArgumentDefinitionOffsets();
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
         }
-        log.debug(() -> new StringBuilder().append("beautify <").append(this).append(">, offsets=")
-                .append(argumentDefinitionOffsets));
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
+        int parentPosition = 0;
+        if (parentResult != null) {
+            parentPosition = parentResult.getPosition();
+        }
+        ArgumentDefinitionOffsets argumentDefinitionOffsets = formatContext.getArgumentDefinitionOffsets();
+        renderResult = new RenderMultiLines(this, formatContext, parentResult);
 
         for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
             if (node == dataType) {
                 if (argumentDefinitionOffsets != null && argumentDefinitionOffsets.getDataTypeOffset() != null) {
-                    result.positionAt(argumentDefinitionOffsets.getDataTypeOffset().intValue());
+                    renderResult.positionAt(parentPosition + argumentDefinitionOffsets.getDataTypeOffset().intValue());
                 }
             } else if (node == columnConstraints) {
                 if (argumentDefinitionOffsets != null
                         && argumentDefinitionOffsets.getDefaultExpressionOffset() != null) {
-                    result.positionAt(argumentDefinitionOffsets.getDefaultExpressionOffset().intValue());
+                    renderResult.positionAt(
+                            parentPosition + argumentDefinitionOffsets.getDefaultExpressionOffset().intValue());
                 }
             }
-            result.addRenderResult(node.beautify(formatContext, parentResult, config), formatContext);
+            renderResult.addRenderResult(node.beautify(formatContext, parentResult, config), formatContext);
         }
 
-        log.debug(() -> "render result = \n" + result.beautify());
-        return result;
+        return cacheRenderResult(renderResult, formatContext, parentResult);
     }
+
+    /**
+     * @see ScanResult#getSingleLineWidth(FormatConfiguration)
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        if (singleLineLength != 0) {
+            return singleLineLength;
+        }
+        int elementWidth;
+        for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
+            elementWidth = node.getSingleLineWidth(config);
+            if (elementWidth < 0) {
+                singleLineLength = -1;
+                return singleLineLength;
+            }
+            singleLineLength += elementWidth;
+        }
+        return singleLineLength;
+    }
+
 }

@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -67,18 +64,31 @@ public class ForLoopNode extends SrcNode {
      * @see SrcNode#beautify(FormatContext, RenderMultiLines, FormatConfiguration)
      */
     @Override
-    public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult, FormatConfiguration config) {
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
-        String standardIndent = FormatContext.indent(true);
+    public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult,
+            FormatConfiguration config) {
+        RenderMultiLines result = getCachedRenderResult(formatContext, parentResult, config);
+        if (result != null) {
+            return result;
+        }
+
+        int parentPosition = 0;
+        if (parentResult != null) {
+            if (!parentResult.isLastNonWhiteSpaceEqualToLinefeed()) {
+                parentResult.addLine();
+            }
+            parentPosition = parentResult.getPosition();
+        }
+
+        result = new RenderMultiLines(this, formatContext, parentResult).setIndentBase(parentPosition).setIndent(0);
         for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
             if (node instanceof LoopNode) {
                 switch (config.getLanguagePlpgsql().getCodeSection().getForStatement().getLoop()) {
                 case ON_NEW_LINE:
-                    result.addLine(standardIndent);
+                    result.addLine();
                     break;
                 case SINGLE_LINE_AFTER_MULTI_LINE_UNDER:
                     if (result.getHeight() > 1) {
-                        result.addLine(standardIndent);
+                        result.addLine();
                     }
                     break;
                 case AFTER_CONDITION:
@@ -89,7 +99,7 @@ public class ForLoopNode extends SrcNode {
             }
             result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
         }
-        return result;
+        return cacheRenderResult(result, formatContext, parentResult);
     }
 
 }

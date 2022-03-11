@@ -42,7 +42,8 @@ public class TestFallbackRendering {
         String output = com.splendiddata.pgcode.formatter.CodeFormatter
                 .toStringResults(new StringReader(input), config).collect(Collectors.joining());
         Assertions.assertEquals(
-                "statement_one\na; /* some comment */\nstatement_two\nf(a, b)\nwith some extra code;\n",
+                "statement_one a; /* some comment */\n"
+                + "statement_two f(a, b) with some extra code;\n",
                 output.toString(), "input: " + input);
     }
 }

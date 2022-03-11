@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
  * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
@@ -29,6 +29,7 @@ import com.splendiddata.pgcode.formatter.FormatConfiguration;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.BeforeOrAfterType;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CaseElsePositionOption;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CaseEndPositionOption;
+import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CaseThenFallbackPositionOption;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CaseThenPositionOption;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CaseThenPositionType;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.CaseType;
@@ -129,6 +130,7 @@ public class DefaultConfigCreator {
         IndentType indentType = factory.createIndentType();
         indentType.setIndentWidth(Integer.valueOf(4));
         indentType.setTabsOrSpaces(TabsOrSpacesType.SPACES);
+        indentType.setIndentInnerFunction(Boolean.TRUE);
         config.setIndent(indentType);
         config.setEmptyLine(EmptyLineOption.PRESERVE_ONE);
         config.setLetterCaseFunctions(LetterCaseType.UNCHANGED);
@@ -285,6 +287,9 @@ public class DefaultConfigCreator {
         CaseThenPositionType thenPosition = factory.createCaseThenPositionType();
         thenPosition.setValue(CaseThenPositionOption.THEN_AFTER_WHEN_ALIGNED);
         thenPosition.setWeight(Float.valueOf(10));
+        thenPosition.setMinPosition(Integer.valueOf(7));
+        thenPosition.setMaxPosition(Integer.valueOf(config.getLineWidth().getValue()));
+        thenPosition.setFallbackPosition(CaseThenFallbackPositionOption.THEN_INDENTED);
         caseType.setThenPosition(thenPosition);
         caseType.setElsePosition(CaseElsePositionOption.ELSE_UNDER_THEN);
         caseType.setEndPosition(CaseEndPositionOption.END_UNDER_CASE);
@@ -309,6 +314,9 @@ public class DefaultConfigCreator {
         caseType.setElsePosition(CaseElsePositionOption.ELSE_UNDER_THEN);
         caseType.setEndPosition(CaseEndPositionOption.END_UNDER_CASE);
         config.setCaseWhen(caseType);
+        thenPosition.setMinPosition(Integer.valueOf(7));
+        thenPosition.setMaxPosition(Integer.valueOf(config.getLineWidth().getValue()));
+        thenPosition.setFallbackPosition(CaseThenFallbackPositionOption.THEN_INDENTED);
 
         /*
          * language plpgsql

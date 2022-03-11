@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -62,11 +62,11 @@ public class PlpgsqlCompoundStatementPart extends SrcNode implements WantsNewlin
     public PlpgsqlCompoundStatementPart(ScanResult scanResult, Predicate<ScanResult> isBeyondTheBlock) {
         super(ScanResultType.INTERPRETED, PostgresInputReader.interpretPlpgsqlStatementStart(scanResult));
 
-        int beginEndLevel = scanResult.getBeginEndLevel();
+        int beginEndLevel = getStartScanResult().getBeginEndLevel();
         ScanResult lastInterpreted = getStartScanResult();
         ScanResult priorNode = lastInterpreted;
         ScanResult currentNode;
-        for (currentNode = priorNode; currentNode != null && !currentNode.isEof()
+        for (currentNode = priorNode.getNext(); currentNode != null && !currentNode.isEof()
                 && currentNode.getBeginEndLevel() >= beginEndLevel
                 && !isBeyondTheBlock.test(currentNode); currentNode = (priorNode == null ? null : priorNode.getNext())) {
             currentNode = PostgresInputReader.interpretPlpgsqlStatementStart(priorNode.getNext());
@@ -86,17 +86,33 @@ public class PlpgsqlCompoundStatementPart extends SrcNode implements WantsNewlin
      */
     @Override
     public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult, FormatConfiguration config) {
-        RenderMultiLines result = new RenderMultiLines(this, formatContext).setIndent(0);
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
+        }
+         renderResult = new RenderMultiLines(this, formatContext, parentResult).setIndent(config.getStandardIndent());
         for (ScanResult statement = getStartScanResult(); statement != null; statement = statement.getNext()) {
             if (statement.is(ScanResultType.LINEFEED)) {
-                result.addLine();
+                renderResult.addLine();
             } else {
-                if (statement.getType().isInterpretable()) {
-                    result.addLine();
+                if (statement.getType().isInterpretable() && !renderResult.isLastNonWhiteSpaceEqualToLinefeed()) {
+                    renderResult.addLine();
                 }
-                result.addRenderResult(statement.beautify(formatContext, result, config), formatContext);
+                renderResult.addRenderResult(statement.beautify(formatContext, renderResult, config), formatContext);
             }
         }
-        return result;
+        renderResult.positionAfterLastNonWhitespace();
+        return cacheRenderResult(renderResult, formatContext, parentResult);
     }
+
+    /**
+     * @see ScanResult#getSingleLineWidth(FormatConfiguration)
+     *
+     * @return -1 as a compound statement is never rendered on a single line
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        return -1;
+    }
+    
 }

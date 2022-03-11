@@ -46,18 +46,24 @@ public class TestCaseStatementNode {
                 // input
                 "CASE a WHEN 1 THEN\n" +
                 "      RAISE NOTICE  'a = 1';\n" +
+                "      a := 2;\n" +
                 "WHEN 2 THEN\n" +
                 "      RAISE NOTICE  'a = 2';\n" +
                 "ELSE\n" +
                 "      RAISE NOTICE  'other value';\n" +
                 "END CASE",
                 // expected
-                "CASE a \n"
-                + "WHEN 1 THEN RAISE NOTICE 'a = 1';\n"
-                + "WHEN 2 THEN RAISE NOTICE 'a = 2';\n"
-                + "ELSE RAISE NOTICE 'other value';\n"
-                + "END\n"
-                + "CASE"
+                "CASE a\n"
+                + "    WHEN 1\n"
+                + "        THEN\n"
+                + "            RAISE NOTICE 'a = 1';\n"
+                + "            a := 2;\n"
+                + "    WHEN 2\n"
+                + "        THEN\n"
+                + "            RAISE NOTICE 'a = 2';\n"
+                + "    ELSE\n"
+                + "        RAISE NOTICE 'other value';\n"
+                + "END CASE"
                 // @formatter:on
                 } };
     }
@@ -68,9 +74,9 @@ public class TestCaseStatementNode {
         try (PostgresInputReader reader = new PostgresInputReader(new StringReader(input))) {
             CaseStatementNode stmt = new CaseStatementNode(reader.getFirstResult());
             FormatConfiguration config = new FormatConfiguration((Configuration) null);
-            config.getCaseWhen().getWhenPosition().setValue(CaseWhenPositionOption.WHEN_INDENTED);
-            config.getCaseWhen().getThenPosition().setValue(CaseThenPositionOption.THEN_INDENTED);
-            config.getCaseWhen().setElsePosition(CaseElsePositionOption.ELSE_UNDER_WHEN);
+            config.getCaseOperand().getWhenPosition().setValue(CaseWhenPositionOption.WHEN_INDENTED);
+            config.getCaseOperand().getThenPosition().setValue(CaseThenPositionOption.THEN_INDENTED);
+            config.getCaseOperand().setElsePosition(CaseElsePositionOption.ELSE_UNDER_WHEN);
             Assertions.assertEquals(expected, stmt.beautify(new FormatContext(config, null), null, config).beautify(),
                     "tried to beautify statement: " + input);
         }

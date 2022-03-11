@@ -7,10 +7,12 @@ as $function$
 DECLARE
     rec_s      RECORD;
 BEGIN
-    UPDATE DEPARTMENT SET dep_name = CASE
-                                         WHEN city_id = 0 THEN dep1
-                                         WHEN city_id = 1 THEN dep2
-                                         ELSE (dep3 || '_special')
-                                     END WHERE x = y OR u = v;
+    UPDATE DEPARTMENT
+        SET dep_name = CASE
+                           WHEN city_id = 0 THEN dep1
+                           WHEN city_id = 1 THEN dep2
+                           ELSE (dep3 || '_special')
+                       END
+        WHERE x = y OR u = v;
 END;
 $function$

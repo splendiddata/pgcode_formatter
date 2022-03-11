@@ -83,9 +83,11 @@ public class IntoClauseNode extends ClauseThatStartsWithMajorKeyword {
                 }
             }
         }
-        if (next.is(ScanResultType.IDENTIFIER)) {
+        if (next.is(ScanResultType.IDENTIFIER) || next.is(ScanResultType.FUNCTION_CALL)) {
             prev.setNext(next);
-            ((IdentifierNode) next).setNotKeyword(true);
+            if (next.is(ScanResultType.IDENTIFIER)) {
+                ((IdentifierNode) next).setNotKeyword(true);
+            }
             prev = next;
             next = prev.getNext();
         }

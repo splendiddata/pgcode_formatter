@@ -410,10 +410,33 @@
             <enumeration value="thenIndented" />
         </restriction>
     </simpleType>
+    <simpleType name="CaseThenFallbackPositionOption">
+        <restriction base="string">
+            <enumeration value="thenUnderWhen" />
+            <enumeration value="thenIndented" />
+            <enumeration value="thenDoubleIndented" />
+        </restriction>
+    </simpleType>
     <complexType name="CaseThenPositionType">
         <complexContent>
             <extension base="tns:BaseFormatOption">
                 <attribute name="value" type="tns:CaseThenPositionOption" />
+		        <attribute name="minPosition" type="int" use="optional">
+		            <annotation>
+		                <documentation>
+		                    "The" position for alignment="atHorizontalPosition",
+		                    minimum position for alignment="verticalAlignment"
+		                </documentation>
+		            </annotation>
+		        </attribute>
+		        <attribute name="maxPosition" type="int" use="optional">
+		            <annotation>
+		                <documentation>
+		                    Maximum position for alignment="verticalAlignment"
+		                </documentation>
+		            </annotation>
+		        </attribute>
+		        <attribute name="fallbackPosition" type="tns:CaseThenFallbackPositionOption" use="optional"/>
             </extension>
         </complexContent>
     </complexType>

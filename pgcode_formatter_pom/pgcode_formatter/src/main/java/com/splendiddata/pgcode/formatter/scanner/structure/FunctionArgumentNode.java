@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -23,6 +23,8 @@ import org.apache.logging.log4j.Logger;
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
+import com.splendiddata.pgcode.formatter.internal.RenderItem;
+import com.splendiddata.pgcode.formatter.internal.RenderItemType;
 import com.splendiddata.pgcode.formatter.internal.RenderMultiLines;
 import com.splendiddata.pgcode.formatter.scanner.ScanResult;
 import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
@@ -41,8 +43,7 @@ public class FunctionArgumentNode extends SrcNode {
     private final String dataType;
     private final String defaultIndicator;
     private final ScanResult defaultExpr;
-
-    private ArgumentDefinitionOffsets argumentDefinitionOffsets;
+    
     /**
      * Constructor
      *
@@ -194,15 +195,16 @@ public class FunctionArgumentNode extends SrcNode {
      * @return RenderMultiLines The render result
      */
     public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult, FormatConfiguration config) {
-        if (argumentDefinitionOffsets == null) {
-            argumentDefinitionOffsets = formatContext.getArgumentDefinitionOffsets();   
-        }
+        ArgumentDefinitionOffsets argumentDefinitionOffsets = formatContext.getArgumentDefinitionOffsets();  
         log.debug(() -> new StringBuilder().append("beautify <").append(this).append(">, offsets=")
                 .append(argumentDefinitionOffsets));
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
+        RenderMultiLines result = new RenderMultiLines(this, formatContext, parentResult);
         ScanResult node = getStartScanResult();
-        String standardIndent = FormatContext.indent(true);
 
+        int parentOffset = 0;
+        if (parentResult != null) {
+            parentOffset = parentResult.getPosition();
+        }
         /*
          * mode (if any)
          */
@@ -218,7 +220,7 @@ public class FunctionArgumentNode extends SrcNode {
          */
         if (node != null && !"".equals(name)) {
             if (argumentDefinitionOffsets != null && argumentDefinitionOffsets.getNameOffset() != null) {
-                result.positionAt(argumentDefinitionOffsets.getNameOffset().intValue());
+                result.positionAt(parentOffset + argumentDefinitionOffsets.getNameOffset().intValue());
             }
             result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
             for (node = node.getNext(); node != null && !node.getType().isInterpretable(); node = node.getNext()) {
@@ -230,7 +232,7 @@ public class FunctionArgumentNode extends SrcNode {
          * data type
          */
         if (node != null) {
-            RenderMultiLines dataTypeResult = new RenderMultiLines(null, formatContext);
+            RenderMultiLines dataTypeResult = new RenderMultiLines(null, formatContext, parentResult);
             dataTypeResult.addRenderResult(node.beautify(formatContext, result, config), formatContext);
             for (node = node.getNext(); node != null && defaultIndicator != node.toString(); node = node.getNext()) {
                 dataTypeResult.addRenderResult(node.beautify(formatContext, result, config), formatContext);
@@ -244,7 +246,7 @@ public class FunctionArgumentNode extends SrcNode {
                         .getAvailableWidth()) {
                     result.addLine();
                 } else {
-                    result.positionAt(argumentDefinitionOffsets.getDataTypeOffset().intValue());
+                    result.positionAt(parentOffset + argumentDefinitionOffsets.getDataTypeOffset().intValue());
                 }
             }
             result.addRenderResult(dataTypeResult, formatContext);
@@ -255,7 +257,9 @@ public class FunctionArgumentNode extends SrcNode {
          */
         if (node != null) {
             if (argumentDefinitionOffsets != null && argumentDefinitionOffsets.getDefaultIndicatorOffset() != null) {
-                result.positionAt(argumentDefinitionOffsets.getDefaultIndicatorOffset().intValue());
+                result.positionAt(parentOffset + argumentDefinitionOffsets.getDefaultIndicatorOffset().intValue());
+            } else {
+                result.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
             }
             result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
             for (node = node.getNext(); node != null && !node.getType().isInterpretable(); node = node.getNext()) {
@@ -267,9 +271,9 @@ public class FunctionArgumentNode extends SrcNode {
          * default expression (if any)
          */
         if (node != null) {
-            RenderMultiLines defaultExpressionResult = new RenderMultiLines(null, formatContext).setIndent(standardIndent);
+            RenderMultiLines defaultExpressionResult = new RenderMultiLines(null, formatContext, parentResult).setIndent(config.getStandardIndent());
             FormatContext defaultExpressionContext = new FormatContext(config, formatContext)
-                    .setAvailableWidth(formatContext.getAvailableWidth() - standardIndent.length());
+                    .setAvailableWidth(formatContext.getAvailableWidth() - config.getStandardIndent());
             for (; node != null; node = node.getNext()) {
                 defaultExpressionResult.addRenderResult(node.beautify(defaultExpressionContext, defaultExpressionResult, config), formatContext);
             }
@@ -282,7 +286,7 @@ public class FunctionArgumentNode extends SrcNode {
                         + defaultExpressionResult.getWidth() > formatContext.getAvailableWidth()) {
                     result.addLine();
                 } else {
-                    result.positionAt(argumentDefinitionOffsets.getDefaultExpressionOffset().intValue());
+                    result.positionAt(parentOffset + argumentDefinitionOffsets.getDefaultExpressionOffset().intValue());
                 }
             }
             result.addRenderResult(defaultExpressionResult, formatContext);

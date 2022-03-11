@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -94,7 +94,7 @@ public class CombinedIdentifierNode extends SrcNode {
 
     @Override
     public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult, FormatConfiguration config) {
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
+        RenderMultiLines result = new RenderMultiLines(this, formatContext, parentResult);
         String separator = "";
         for (SrcNode node : constituentParts) {
             switch (node.getType()) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
  * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
@@ -17,12 +17,14 @@ package com.splendiddata.pgcode.formatter.scanner.structure;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
-import com.splendiddata.pgcode.formatter.ConfigUtil;
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
+import com.splendiddata.pgcode.formatter.internal.CaseFormatContext;
+import com.splendiddata.pgcode.formatter.internal.CaseFormatContext.RenderPhase;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
 import com.splendiddata.pgcode.formatter.internal.RenderMultiLines;
 import com.splendiddata.pgcode.formatter.internal.RenderResult;
+import com.splendiddata.pgcode.formatter.internal.Util;
 import com.splendiddata.pgcode.formatter.scanner.ScanResult;
 import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
 
@@ -34,8 +36,11 @@ import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
  */
 public class WhenClauseNode extends SrcNode {
     private static final Pattern END_OF_WHEN_PATTERN = Pattern.compile("^(WHEN|ELSE|END)$", Pattern.CASE_INSENSITIVE);
+    private final boolean isStatement;
     private SrcNode whenExpression;
     private ScanResult thenExpression;
+    private RenderMultiLines partialResult;
+    int singleLineLength;
 
     /**
      * Constructor
@@ -45,9 +50,12 @@ public class WhenClauseNode extends SrcNode {
      *            effective node must be 'WHEN'.
      * @param interpreter
      *            The interpreter to use for the content of the when clause.
+     * @param isStatement
+     *            Is this when clause part of a case statement (true) or a case clause (false)
      */
-    public WhenClauseNode(ScanResult startNode, Function<ScanResult, SrcNode> interpreter) {
+    public WhenClauseNode(ScanResult startNode, Function<ScanResult, SrcNode> interpreter, boolean isStatement) {
         super(ScanResultType.WHEN_THEN_CLAUSE, startNode);
+        this.isStatement = isStatement;
         ScanResult cur = startNode;
         if (!"when".equalsIgnoreCase(cur.toString())) {
             // a when statement may start with comment
@@ -114,59 +122,121 @@ public class WhenClauseNode extends SrcNode {
     @Override
     public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
-
-        for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
-            RenderResult renderResult = node.beautify(formatContext, result, config);
-            result.addRenderResult(renderResult, formatContext);
+        RenderMultiLines result = getCachedRenderResult(formatContext, parentResult, config);
+        if (result != null) {
+            return result;
         }
-        for (ScanResult node = whenExpression; node != null; node = node.getNext()) {
-            RenderResult res = node.beautify(formatContext, result, config);
-            result.addRenderResult(res, formatContext);
-        }
-
-        for (ScanResult node = thenExpression; node != null; node = node.getNext()) {
-            RenderResult res = node.beautify(formatContext, result, config);
-
-            if (node instanceof IdentifierNode && "then".equalsIgnoreCase(node.toString())) {
-                boolean onSeparateLine = config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()
-                        && ConfigUtil.isMajorKeywords(node.getText());
-                switch (formatContext.getCaseType().getThenPosition().getValue()) {
-                case THEN_AFTER_WHEN_DIRECTLY: // on the same line immediately following the WHEN condition
-                    // do nothing special, just add
-                    result.addRenderResult(res, formatContext);
-                    break;
-                case THEN_AFTER_WHEN_ALIGNED: // first THEN on the same line but the following THEN's are aligned vertically
-                    result.addRenderResult(res, formatContext);
-
-                    break;
-                case THEN_INDENTED:
-                    result.setIndent(FormatContext.indent(true));
-                    result.addLine();
-                    result.addRenderResult(res, formatContext);
-                    break;
-                case THEN_UNDER_WHEN: // THEN on the next line directly under WHEN
-                    result.addLine();
-                    result.addRenderResult(res, formatContext);
-                    break;
-                default:
-                    if (onSeparateLine) {
-                        result.addLine();
-                        result.addRenderResult(res, formatContext);
-                        result.addLine();
-                    } else {
-                        result.addRenderResult(res, formatContext);
-                    }
-                    result.addRenderResult(res, formatContext);
-
-                    break;
-                }
-            } else {
-                result.addRenderResult(res, formatContext);
+        CaseFormatContext context = formatContext instanceof CaseFormatContext ? (CaseFormatContext) formatContext
+                : new CaseFormatContext(config, formatContext, config.getCaseWhen());
+        
+        int parentPosition = 0;
+        if (parentResult != null) {
+            if (isStatement && !parentResult.isLastNonWhiteSpaceEqualToLinefeed()) {
+                parentResult.addLine();
             }
+            parentPosition = parentResult.getPosition();
+        }
+
+        /*
+         * First see if we are rendering linear
+         */
+        if (RenderPhase.RENDER_LINEAR.equals(context.getRenderPhase())) {
+            result = new RenderMultiLines(this, context, parentResult).setIndentBase(parentPosition);
+            for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
+                result.addRenderResult(node.beautify(context, result, config), context);
+            }
+            for (ScanResult node = whenExpression; node != null; node = node.getNext()) {
+                result.addRenderResult(node.beautify(context, result, config), context);
+            }
+            for (ScanResult node = thenExpression; node != null; node = node.getNext()) {
+                result.addRenderResult(node.beautify(context, result, config), context);
+            }
+            return cacheRenderResult(result, formatContext, parentResult);
+        }
+
+        if (RenderPhase.DETERMINE_THEN_POSITION.equals(context.getRenderPhase())) {
+            partialResult = new RenderMultiLines(this, context, parentResult).setIndentBase(parentPosition);
+            for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
+                partialResult.addRenderResult(node.beautify(context, partialResult, config), context);
+            }
+            for (ScanResult node = whenExpression; node != null; node = node.getNext()) {
+                partialResult.addRenderResult(node.beautify(context, partialResult, config), context);
+            }
+            partialResult.removeTrailingSpaces();
+            context.maximizeThenPosition(partialResult.getPosition() + 1);
+            return null;
+        }
+
+        result = partialResult;
+        if (result == null) {
+            result = new RenderMultiLines(this, context, parentResult).setIndentBase(parentPosition);
+            for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
+                result.addRenderResult(node.beautify(context, result, config), context);
+            }
+            for (ScanResult node = whenExpression; node != null; node = node.getNext()) {
+                result.addRenderResult(node.beautify(context, result, config), context);
+            }
+        } else {
+            partialResult = null;
+        }
+        switch (context.getCaseConfig().getThenPosition().getValue()) {
+        case THEN_AFTER_WHEN_ALIGNED:
+            result.positionAt(context.getThenPosition());
+            break;
+        case THEN_AFTER_WHEN_DIRECTLY:
+            break;
+        case THEN_INDENTED:
+        case THEN_UNDER_WHEN:
+            result.addLine(Util.nSpaces(context.getThenPosition()));
+            result.setIndentBase(context.getThenPosition());
+        default:
+            break;
+
+        }
+        if (isStatement) {
+            result.setIndent(config.getStandardIndent());
+        } else {
+            result.setIndent("THEN ".length());
+        }
+        ScanResult node = thenExpression;
+        result.addRenderResult(node.beautify(context, result, config), context);
+        for (node = node.getNext(); node != null; node = node.getNext()) {
+            if (isStatement && node.getType().isInterpretable()) {
+                result.addLine();
+            }
+            result.addRenderResult(node.beautify(context, result, config), context);
         }
 
         result.removeTrailingSpaces();
-        return result;
+        return cacheRenderResult(result, formatContext, parentResult);
     }
+
+    /**
+     * @see ScanResult#getSingleLineWidth(FormatConfiguration)
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        if (singleLineLength != 0) {
+            return singleLineLength;
+        }
+        int elementSize;
+        for (ScanResult node = whenExpression; node != null; node = node.getNext()) {
+            elementSize = node.getSingleLineWidth(config);
+            if (elementSize < 0) {
+                singleLineLength = 0;
+                return singleLineLength;
+            }
+            singleLineLength += elementSize;
+        }
+        for (ScanResult node = thenExpression; node != null; node = node.getNext()) {
+            elementSize = node.getSingleLineWidth(config);
+            if (elementSize < 0) {
+                singleLineLength = 0;
+                return singleLineLength;
+            }
+            singleLineLength += elementSize;
+        }
+        return singleLineLength;
+    }
+
 }

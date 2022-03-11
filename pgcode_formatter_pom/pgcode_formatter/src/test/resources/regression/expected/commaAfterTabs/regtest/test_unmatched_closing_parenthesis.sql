@@ -2,7 +2,7 @@
 SELECT
 	a
 	FROM
-	(
-			SELECT
-				LOWER(x)
-			))
+		(
+		SELECT
+			LOWER(x)
+		))

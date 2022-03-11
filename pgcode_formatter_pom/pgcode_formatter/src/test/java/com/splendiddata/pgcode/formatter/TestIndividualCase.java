@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter;
@@ -83,37 +80,52 @@ public class TestIndividualCase {
         log.info("testSqlFileWithConfig()");
 
         Path configFile = Paths.get(basePath.toString(), "src/main/resources/profiles/profile3.xml");
+//        Path configFile = Paths.get(basePath.toString(), "src/test/resources/regression/config/commaAfterTabs.xml");
         Path outputFile = Paths.get(basePath.toString(), "target/test/test_output.sql");
 
-                String input = new String(Files.readAllBytes(
-                        Paths.get(basePath.toString(), "src/test/resources/regression/source/regtest/a_trigger.sql")));
+        String input = new String(Files.readAllBytes(Paths.get(basePath.toString(),
+                "src/test/resources/regression/source/regtest/if_exists_examples.sql")));
 
-//        String input = "CREATE OR REPLACE FUNCTION plpgsql_inline_handler_test(internal)\n" + 
-//                " RETURNS void\n" + 
-//                " LANGUAGE c\n" + 
-//                " STRICT\n" + 
-//                "AS '$libdir/plpgsql' /* comment test */ , $function$plpgsql_inline_handler$function$ security definer not leakproof;";
+//        String input =  
+//                "DO $do$\n"
+//                + "DECLARE\n"
+//                + "BEGIN\n"
+//                + "EXCEPTION WHEN NOT found THEN RAISE NOTICE 'not found';\n"
+//                + "    INSERT INTO some_schema.some_table(a_column, another_column, reason, create_timestamp)\n"
+//                + "        VALUES (-1, 'this value is wrong', $text$the value was not found$text$, CURRENT_TIMESTAMP);\n"
+//                + "    RETURN -1; WHEN other THEN RAISE NOTICE $msg$something went very wriong$msg$;RETURN -2;\n"
+//                + "END;\n"
+//                + "$do$;";
 
         Files.createDirectories(outputFile.getParent());
         FormatConfiguration config = new FormatConfiguration(configFile);
         //        FormatConfiguration config = new FormatConfiguration((Configuration)null);
         String output = null;
         try (BufferedWriter writer = Files.newBufferedWriter(outputFile)) {
-            output = CodeFormatter.toStringResults(new StringReader(input), config)
-                    .collect(Collectors.joining());
+            output = CodeFormatter.toStringResults(new StringReader(input), config).collect(Collectors.joining());
             writer.append(output);
         }
         Assertions.assertNotNull(output, "The output is supposed to not be null");
-        Assertions.assertEquals(
-                "CREATE OR REPLACE FUNCTION foo ()\n"
+        Assertions.assertEquals("CREATE OR REPLACE FUNCTION if_exists_examples()\n"
                 + "RETURNS TRIGGER\n"
-                + "AS $$\n"
+                + "LANGUAGE plpgsql\n"
+                + "SECURITY DEFINER\n"
+                + "AS $trg$\n"
+                + "DECLARE\n"
                 + "BEGIN\n"
-                + "    CREATE TEMPORARY TABLE tb (id    integer);\n"
-                + "    SELECT * FROM nothing;\n"
+                + "    IF TG_OP = 'DELETE' THEN\n"
+                + "        IF NOT EXISTS(SELECT 1 FROM TAB1) THEN\n"
+                + "            RETURN a;\n"
+                + "        END IF;\n"
+                + "        DROP TABLE IF EXISTS TAB2;\n"
+                + "        CREATE SCHEMA IF NOT EXISTS sch1;\n"
+                + "        IF (a IS NOT NULL) THEN\n"
+                + "            RETURN a;\n"
+                + "        END IF;\n"
+                + "    END IF;\n"
+                + "    RETURN a;\n"
                 + "END;\n"
-                + "$$\n"
-                + "LANGUAGE 'plpgsql';\n"
+                + "$trg$;\n"
                 + "", output);
     }
 }

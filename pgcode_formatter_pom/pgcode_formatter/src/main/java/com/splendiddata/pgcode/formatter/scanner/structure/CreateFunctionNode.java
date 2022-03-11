@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
  * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
@@ -119,9 +119,21 @@ public class CreateFunctionNode extends SrcNode {
                     priorNode.setNext(currentNode);
                     lastInterpreted = currentNode;
                     priorNode = currentNode.locatePriorToNextInterpretable();
-                    // AS 'definition'
-                    currentNode = CommaSeparatedList.ofDistinctElementTypes(priorNode.getNext(),
-                            node -> new FunctionDefinitionNode(node));
+                    ScanResult functionBodyNode = priorNode.getNext();
+                    ScanResult nextNode = functionBodyNode.getNextInterpretable();
+                    if (nextNode != null && nextNode.is(ScanResultType.CHARACTER)
+                            && ",".equals(currentNode.toString())) {
+                        /*
+                         * "CREATE FUNCTION ... AS 'obj_file', 'link_symbol' ..." format.
+                         */
+                        currentNode = CommaSeparatedList.ofDistinctElementTypes(priorNode.getNext(),
+                                node -> PostgresInputReader.interpretStatementBody(node));
+                    } else {
+                        /*
+                         * "CREATE FUNCTION ... AS 'definition' ..." format
+                         */
+                        currentNode = new FunctionDefinitionNode(functionBodyNode);
+                    }
                     priorNode.setNext(currentNode);
                     lastInterpreted = currentNode;
                     break;
@@ -200,7 +212,7 @@ public class CreateFunctionNode extends SrcNode {
         } else if (language != null) {
             result = language.toString();
         }
-        return result;
+        return result.toLowerCase();
     }
 
     /**
@@ -234,7 +246,7 @@ public class CreateFunctionNode extends SrcNode {
         FunctionDefinitionArgumentGroupingType argumentListConfig = config.getFunctionDefinitionArgumentGrouping();
         ArgumentDefinitionOffsets argumentDefinitionOffsets = getArgumentDefinitionOffsets(argumentListConfig);
 
-        RenderMultiLines result = new RenderMultiLines(this, formatContext).setIndent(0);
+        RenderMultiLines result = new RenderMultiLines(this, formatContext, parentResult);
 
         formatContext.setLanguage(getLanguage());
         FormatContext context = new FormatContext(config, formatContext);
@@ -244,37 +256,6 @@ public class CreateFunctionNode extends SrcNode {
             case IDENTIFIER:
                 RenderResult renderResult = current.beautify(context, result, config);
                 switch (current.toString().toLowerCase()) {
-                case "as":
-                    result.addLine();
-                    result.addRenderResult(renderResult, formatContext);
-                    result.addWhiteSpaceIfApplicable();
-                    for (current = current.getNext(); current != null; current = current.getNext()) {
-                        if (current instanceof CommaSeparatedList) {
-                            /*
-                             * The AS clause in a function definition usually has one literal: the code.
-                             */
-                            List<ListElement> code = ((CommaSeparatedList) current).getElements();
-                            if (code.size() == 1) {
-                                //                                /*
-                                //                                 * List elements that are created with BeforeOrAfterType.BEFORE are indented with two
-                                //                                 * spaces to allow room for the comma and a space. But we don't want that here, so let's
-                                //                                 * tell it the comma (there will not be any) is supposed to occur AFTER it
-                                //                                 */
-                                //                                CommaSeparatedListGroupingType csListgrouping = new ObjectFactory()
-                                //                                        .createCommaSeparatedListGroupingType();
-                                //                                context.getCommaSeparatedListGrouping().copyTo(csListgrouping);
-                                //                                csListgrouping.setCommaBeforeOrAfter(BeforeOrAfterType.AFTER);
-                                //                                context.setCommaSeparatedListGrouping(csListgrouping);
-
-                                result.addRenderResult(code.get(0).beautify(context, result, config), formatContext);
-                            } else {
-                                result.addRenderResult(current.beautify(formatContext, result, config), formatContext);
-                            }
-                            break;
-                        }
-                        result.addRenderResult(current.beautify(formatContext, result, config), formatContext);
-                    }
-                    break;
                 case "not":
                     result.addLine();
                     result.addRenderResult(renderResult, formatContext);
@@ -298,6 +279,7 @@ public class CreateFunctionNode extends SrcNode {
                 case "set":
                 case "external":
                 case "security":
+                case "as":
                     result.addLine();
                     result.addRenderResult(renderResult, formatContext);
                     break;
@@ -306,7 +288,7 @@ public class CreateFunctionNode extends SrcNode {
                     result.addRenderResult(renderResult, formatContext);
                     break;
                 case "table":
-                    result.removeTrailingLineFeeds();
+                    result.positionAfterLastNonWhitespace();
                     result.addWhiteSpaceIfApplicable();
                     result.addRenderResult(renderResult, formatContext);
                     break;
@@ -319,6 +301,11 @@ public class CreateFunctionNode extends SrcNode {
                 /*
                  * This can only be the argument list
                  */
+                // Make sure the single line length is based on the right comma separated list config
+                FormatConfiguration argumentsConfig = new FormatConfiguration(config);
+                argumentsConfig.setCommaSeparatedListGrouping(argumentListConfig.getArgumentGrouping());
+                current.getSingleLineWidth(argumentsConfig);
+
                 FormatContext argumentsContext = new FormatContext(config, formatContext)
                         .setCommaSeparatedListGrouping(argumentListConfig.getArgumentGrouping())
                         .setArgumentDefinitionOffsets(argumentDefinitionOffsets);

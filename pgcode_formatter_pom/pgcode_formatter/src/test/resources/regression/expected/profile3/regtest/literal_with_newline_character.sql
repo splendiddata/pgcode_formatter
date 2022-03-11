@@ -1,12 +1,9 @@
 create or replace function literal_with_newline_character
         ( q varchar
-        , s varchar 
-                  DEFAULT '
+        , s varchar DEFAULT '
                   ,'::varchar
-        , f varchar 
-                  DEFAULT NULL::varchar
-        , l varchar 
-                  DEFAULT NULL::varchar
+        , f varchar DEFAULT NULL::varchar
+        , l varchar DEFAULT NULL::varchar
         )
 returns integer
 language plpgsql

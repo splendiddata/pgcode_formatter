@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -32,7 +32,6 @@ import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
  * @since 0.0.1
  */
 public class TableConstraint extends SrcNode {
-    private RenderMultiLines renderedSimpleResult = null;
 
     /**
      * Constructor
@@ -68,21 +67,14 @@ public class TableConstraint extends SrcNode {
     @Override
     public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
-        if (renderedSimpleResult != null) {
-            /*
-             * Return a cached render result
-             */
-            return renderedSimpleResult;
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
         }
-        RenderMultiLines result = Util.renderStraightForward(getStartScanResult(),
-                new RenderMultiLines(this, formatContext).setIndent(0), formatContext, config);
-        if (result.getHeight() <= 1) {
-            /*
-             * If the render result fits on a single line, then the result will not change if rendered again. So in that
-             * case we might as well cache it.
-             */
-            renderedSimpleResult = result;
-        }
-        return result;
+        
+        renderResult = Util.renderStraightForward(getStartScanResult(),
+                new RenderMultiLines(this, formatContext, parentResult), formatContext, config);
+        
+        return cacheRenderResult(renderResult, formatContext, parentResult);
     }
 }

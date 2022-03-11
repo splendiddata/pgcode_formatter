@@ -18,15 +18,18 @@ BEGIN
 END;
 $innerInner$
 	LANGUAGE plpgsql;
+
 	SELECT
 		innerInner()
 		INTO
 			s;
 	RAISE NOTICE '%', s;
+
 	RETURN 'returned by inner function';
 END;
 $inner$
 	LANGUAGE plpgsql;
+
 	SELECT
 		inner()
 		INTO

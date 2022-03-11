@@ -81,7 +81,7 @@ public class TestPlpgsqlLabel {
             Assertions.assertEquals(src, scanResult.toString(), "scanResult.toString()");
             Assertions.assertEquals(src, scanResult.getText(), "scanResult.getText()");
             Assertions.assertEquals("<< /* just some comment */ \"a Label\" -- endofline comment\n" + 
-                    "                                     >>",
+                    ">>",
                     scanResult.beautify(new FormatContext(config, null), null, config).beautify(),
                     "scanResult.beautify(new FormatContext(config, null), config)");
             Assertions.assertTrue(scanResult == PlpgsqlLabel.from(scanResult),

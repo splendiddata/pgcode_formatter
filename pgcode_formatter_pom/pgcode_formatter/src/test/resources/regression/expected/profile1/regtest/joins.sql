@@ -1,7 +1,7 @@
 SELECT
 	a, b, c
 	FROM
-	tablea
+		tablea
 		JOIN tableb ON (tablea.a=tableb.a)
 		JOIN tablec ON (tablec.a=tableb.a)
 		LEFT OUTER JOIN tabled ON (tabled.a=tableb.a)

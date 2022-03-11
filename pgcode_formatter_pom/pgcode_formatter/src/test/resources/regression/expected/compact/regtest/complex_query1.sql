@@ -1,8 +1,7 @@
 CREATE OR REPLACE VIEW v1 (e, id, s, t, st1, st2) AS WITH tab1 AS (
 	SELECT tb1.col1, tb1.col2
 	FROM tab2 tb1
-	WHERE date_trunc('day', tb1.col1) =
-		  date_trunc('day', clock_timestamp()) ) , sta AS (
+	WHERE date_trunc('day', tb1.col1) = date_trunc('day', clock_timestamp()) ) , sta AS (
 	SELECT row_number() over(ORDER BY col1 DESC) AS e,
 		bl.col1 AS s,
 		f1(bl.col1) over (ORDER BY col1) AS t
@@ -98,10 +97,10 @@ CREATE OR REPLACE VIEW v1 (e, id, s, t, st1, st2) AS WITH tab1 AS (
 		when min(tb1.col1) < max(tb1.col1) then 'case 2'
 		ELSE 'other cases'
 		END st2
-	FROM stg 
-		 JOIN sta ch ON ch.e <=100 
+	FROM stg
+		 JOIN sta ch ON ch.e <=100
 		 LEFT JOIN tab1 tb1 ON tb1.col2 = stg.col2 AND (
-			 tb1.col1 >= ch.s AND tb1.col1 < coalesce(
-												 ch.t,
-												 clock_timestamp() + (1/ 60::NUMERIC /24::NUMERIC||' D')::INTERVAL ) )
+		tb1.col1 >= ch.s AND tb1.col1 < coalesce(
+			ch.t,
+			clock_timestamp() + (1/ 60::NUMERIC /24::NUMERIC||' D')::INTERVAL ) )
 	GROUP BY ch.e, stg.st1;

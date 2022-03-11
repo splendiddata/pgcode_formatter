@@ -1,21 +1,20 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter;
+
+import java.util.Objects;
 
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.BaseFormatOption;
 import com.splendiddata.pgcode.formatter.configuration.xml.v1_0.BooleanOption;
@@ -483,6 +482,9 @@ public class ConfigUtil {
         CaseThenPositionType copy = OBJECT_FACTORY.createCaseThenPositionType();
         copy.setValue(original.getValue());
         copy.setWeight(original.getWeight());
+        copy.setMinPosition(original.getMinPosition());
+        copy.setMaxPosition(original.getMaxPosition());
+        copy.setFallbackPosition(original.getFallbackPosition());
         return copy;
     }
 
@@ -574,5 +576,191 @@ public class ConfigUtil {
         copy.setForStatement(copy(original.getForStatement()));
         copy.setIfStatement(copy(original.getIfStatement()));
         return copy;
+    }
+
+    /**
+     * Compares CommaSeparatedListGroupingType a with CommaSeparatedListGroupingType b.
+     *
+     * @param a
+     *            The CommaSeparatedListGroupingType to compare
+     * @param b
+     *            The CommaSeparatedListGroupingType to compare with
+     * @return true if a is equal to b or if they are both null
+     * @since 0.3
+     */
+    public static boolean equals(CommaSeparatedListGroupingType a, CommaSeparatedListGroupingType b) {
+        if (a == b) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return false;
+        }
+        if (!ConfigUtil.equals(a.getIndent(), b.getIndent())) {
+            return false;
+        }
+        if (!ConfigUtil.equals(a.getMaxSingleLineLength(), b.getMaxSingleLineLength())) {
+            return false;
+        }
+        if (!ConfigUtil.equals(a.getMaxArgumentsPerGroup(), b.getMaxArgumentsPerGroup())) {
+            return false;
+        }
+        if (!ConfigUtil.equals(a.getMaxLengthOfGroup(), b.getMaxLengthOfGroup())) {
+            return false;
+        }
+        if (!Objects.equals(a.getCommaBeforeOrAfter(), b.getCommaBeforeOrAfter())) {
+            return false;
+        }
+        if (!Objects.equals(a.isMultilineOpeningParenBeforeArgument(), b.isMultilineOpeningParenBeforeArgument())) {
+            return false;
+        }
+        if (!Objects.equals(a.isMultilineClosingParenOnNewLine(), b.isMultilineClosingParenOnNewLine())) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Compares IntegerValueOption a with IntegerValueOption b.
+     *
+     * @param a
+     *            The IntegerValueOption to compare
+     * @param b
+     *            The IntegerValueOption to compare with
+     * @return true if a is equal to b or if they are both null
+     * @since 0.3
+     */
+    public static boolean equals(IntegerValueOption a, IntegerValueOption b) {
+        if (a == b) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return false;
+        }
+        if (a.getValue() != b.getValue()) {
+            return false;
+        }
+        if (!Objects.equals(a.getWeight(), b.getWeight())) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Compares CommaSeparatedListIndentType a with CommaSeparatedListGroupingType b.
+     *
+     * @param a
+     *            The CommaSeparatedListIndentType to compare
+     * @param b
+     *            The CommaSeparatedListIndentType to compare with
+     * @return true if a is equal to b or if they are both null
+     * @since 0.3
+     */
+    public static boolean equals(CommaSeparatedListIndentType a, CommaSeparatedListIndentType b) {
+        if (a == b) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return false;
+        }
+        if (!Objects.equals(a.getValue(), b.getValue())) {
+            return false;
+        }
+        if (!Objects.equals(a.getWeight(), b.getWeight())) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Compares CaseType a with CaseType b.
+     *
+     * @param a
+     *            The CaseType to compare
+     * @param b
+     *            The CaseType to compare with
+     * @return true if a is equal to b or if they are both null
+     * @since 0.3
+     */
+    public static boolean equals(CaseType a, CaseType b) {
+        if (a == b) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return false;
+        }
+        if (!ConfigUtil.equals(a.getMaxSingleLineClause(), b.getMaxSingleLineClause())) {
+            return false;
+        }
+        if (!ConfigUtil.equals(a.getWhenPosition(), b.getWhenPosition())) {
+            return false;
+        }
+        if (!ConfigUtil.equals(a.getThenPosition(), b.getThenPosition())) {
+            return false;
+        }
+        if (!Objects.equals(a.getElsePosition(), b.getElsePosition())) {
+            return false;
+        }
+        if (!Objects.equals(a.getEndPosition(), b.getEndPosition())) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Compares CaseThenPositionType a with CaseThenPositionType b.
+     *
+     * @param a
+     *            The CaseThenPositionType to compare
+     * @param b
+     *            The CaseThenPositionType to compare with
+     * @return true if a is equal to b or if they are both null
+     * @since 0.3
+     */
+    public static boolean equals(CaseThenPositionType a, CaseThenPositionType b) {
+        if (a == b) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return false;
+        }
+        if (!Objects.equals(a.getValue(), b.getValue())) {
+            return false;
+        }
+        if (!Objects.equals(a.getMinPosition(), b.getMinPosition())) {
+            return false;
+        }
+        if (!Objects.equals(a.getMaxPosition(), b.getMaxPosition())) {
+            return false;
+        }
+        if (!Objects.equals(a.getFallbackPosition(), b.getFallbackPosition())) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Compares CaseWhenPositionType a with CaseWhenPositionType b.
+     *
+     * @param a
+     *            The CaseWhenPositionType to compare
+     * @param b
+     *            The CaseWhenPositionType to compare with
+     * @return true if a is equal to b or if they are both null
+     * @since 0.3
+     */
+    public static boolean equals(CaseWhenPositionType a, CaseWhenPositionType b) {
+        if (a == b) {
+            return true;
+        }
+        if (a == null || b == null) {
+            return false;
+        }
+        if (!Objects.equals(a.getValue(), b.getValue())) {
+            return false;
+        }
+        if (!Objects.equals(a.getWeight(), b.getWeight())) {
+            return false;
+        }
+        return true;
     }
 }

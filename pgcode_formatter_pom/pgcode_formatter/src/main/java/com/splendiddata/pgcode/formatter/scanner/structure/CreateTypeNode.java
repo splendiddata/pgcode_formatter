@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
  * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
  * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
@@ -33,7 +33,6 @@ import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
  */
 public class CreateTypeNode extends SrcNode {
 
-    CommaSeparatedList asAttributesNode;
     IdentifierNode specifiedTypeName;
 
     /**
@@ -67,65 +66,36 @@ public class CreateTypeNode extends SrcNode {
             return;
         }
 
-        specifiedTypeName = PostgresInputReader.toIdentifier(node);
+        specifiedTypeName = PostgresInputReader.toIdentifier(node).setNotKeyword(true);
         priorNode.setNext(specifiedTypeName);
         priorNode = specifiedTypeName;
         node = specifiedTypeName.getNext();
 
-        while (!node.getType().isInterpretable() && !node.isEof()) {
-            priorNode = node;
-            node = node.getNext();
-        }
-
-        while (node != null && !node.isStatementEnd() && !node.isEof()) {
-            switch (node.getText().toLowerCase()) {
-            case "as":
-                node = node.getNext();
-                if ("range".equalsIgnoreCase(node.getNextInterpretable().getText())
-                        || "enum".equalsIgnoreCase(node.getNextInterpretable().getText())) {
-                    while (!node.getType().isInterpretable() && !node.isEof()) {
-                        node = node.getNext();
-                    }
-                }
-
-                priorNode = node;
-                node = node.getNext();
-                while (!node.getType().isInterpretable() && !node.isEof()) {
-                    priorNode = node;
-                    node = node.getNext();
-                }
-
-                // AS 'definition'
-                asAttributesNode = CommaSeparatedList.withArbitraryEnd(node,
-                        aNode -> PostgresInputReader.interpretStatementBody(aNode), aNode -> false);
-                priorNode.setNext(asAttributesNode);
-                priorNode = asAttributesNode;
-                node = asAttributesNode.getNext();
-
-                break;
-            case "(":
-                // attributes
-                asAttributesNode = CommaSeparatedList.withArbitraryEnd(node,
-                        aNode -> PostgresInputReader.interpretStatementBody(aNode), aNode -> false);
-                priorNode.setNext(asAttributesNode);
-                priorNode = asAttributesNode;
-                node = asAttributesNode.getNext();
-
-                break;
-            default:
-                priorNode = node;
-                node = node.getNext();
+        ScanResult currentNode = specifiedTypeName;
+        ScanResult lastInterpreted = specifiedTypeName;
+        for (priorNode = lastInterpreted.locatePriorToNextInterpretable();; priorNode = lastInterpreted
+                .locatePriorToNextInterpretable()) {
+            currentNode = priorNode.getNext();
+            if (currentNode == null || currentNode.isStatementEnd()) {
                 break;
             }
+            lastInterpreted = PostgresInputReader.interpretStatementBody(currentNode);
+            priorNode.setNext(lastInterpreted);
         }
 
-        if (node != null) {
-            setNext(node);
-            priorNode.setNext(null);
+        if (currentNode != null && currentNode.is(ScanResultType.SEMI_COLON)) {
+            lastInterpreted = new SemiColonNode(currentNode);
+            priorNode.setNext(lastInterpreted);
         }
+
+        setNext(lastInterpreted.getNext());
+        lastInterpreted.setNext(null);
 
     }
 
+    /**
+     * @see SrcNode#toString()
+     */
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
@@ -140,19 +110,18 @@ public class CreateTypeNode extends SrcNode {
         return result.toString();
     }
 
+    /**
+     * @see SrcNode#beautify(FormatContext, RenderMultiLines, FormatConfiguration)
+     */
     @Override
     public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
+        RenderMultiLines result = new RenderMultiLines(this, formatContext, parentResult);
 
         for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
-            if (node == asAttributesNode) {
-                if (config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()) {
-                    parentResult.addLine();
-                }
-                result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
-            } else {
-                result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+            result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+            if (node == specifiedTypeName && config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()) {
+                parentResult.addLine();
             }
         }
         return result;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -46,14 +46,16 @@ public class TestCreateTrigger {
                     "    FOR EACH ROW\n" +
                     "    EXECUTE FUNCTION check_address_update()",
                     // expected
-                    "CREATE TRIGGER tr_check BEFORE UPDATE ON address FOR EACH ROW EXECUTE FUNCTION check_address_update()"
+                    "CREATE TRIGGER tr_check BEFORE\n"
+                    + "    UPDATE ON address FOR EACH ROW EXECUTE FUNCTION check_address_update()"
                 // @formatter:on
                 },
                 {
                     // input
                     "CREATE TRIGGER tr_check BEFORE UPDATE ON address FOR EACH ROW EXECUTE FUNCTION check_address_update()",
                     // expected
-                    "CREATE TRIGGER tr_check BEFORE UPDATE ON address FOR EACH ROW EXECUTE FUNCTION check_address_update()"
+                    "CREATE TRIGGER tr_check BEFORE\n"
+                    + "    UPDATE ON address FOR EACH ROW EXECUTE FUNCTION check_address_update()"
                 // @formatter:on
                 },
                 {
@@ -64,7 +66,8 @@ public class TestCreateTrigger {
                     "    FOR EACH ROW\n" +
                     "    EXECUTE FUNCTION check_address_update()",
                     // expected
-                    "CREATE TRIGGER tr_check BEFORE UPDATE OF city ON address FOR EACH ROW EXECUTE FUNCTION check_address_update()"
+                    "CREATE TRIGGER tr_check BEFORE\n"
+                    + "    UPDATE OF city ON address FOR EACH ROW EXECUTE FUNCTION check_address_update()"
                 // @formatter:on
                 } };
     }

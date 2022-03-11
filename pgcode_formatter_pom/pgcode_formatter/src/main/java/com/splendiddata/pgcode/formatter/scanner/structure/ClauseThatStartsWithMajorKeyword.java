@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -40,8 +37,9 @@ import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
  */
 public abstract class ClauseThatStartsWithMajorKeyword extends SrcNode implements WantsNewlineBefore {
 
-    private static final Set<String> LOGICAL_OPERATORS = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList("AND", "OR")));
+    private static final Set<String> LOGICAL_OPERATORS = Collections
+            .unmodifiableSet(new HashSet<>(Arrays.asList("AND", "OR")));
+    private int singleLineWidth;
 
     /**
      * Constructor
@@ -72,30 +70,44 @@ public abstract class ClauseThatStartsWithMajorKeyword extends SrcNode implement
     @Override
     public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
+        }
+
         int availableWidth = formatContext.getAvailableWidth();
-        int standardIndent = FormatContext.indent(true).length();
+        int startPosition = 0;
+        if (parentResult != null) {
+            startPosition = parentResult.getPosition();
+        }
+
         /*
          * Try to render on a single line
          */
 
         if (!config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()) {
-            RenderMultiLines result = new RenderMultiLines(this, formatContext);
-            for (ScanResult node = getStartScanResult(); node != null && result.getHeight() <= 1; node = node.getNext()) {
-                result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
-            }
-            if (result.getHeight() == 1 && result.getPosition() <= availableWidth) {
-                return result;
+            int singleLineLength = getSingleLineWidth(config);
+            if (singleLineLength > 0 && singleLineLength + startPosition < config.getLineWidth().getValue()) {
+                renderResult = new RenderMultiLines(this, formatContext, parentResult);
+                for (ScanResult node = getStartScanResult(); node != null
+                        && renderResult.getHeight() <= 1; node = node.getNext()) {
+                    renderResult.addRenderResult(node.beautify(formatContext, renderResult, config), formatContext);
+                }
+                if (renderResult.getHeight() == 1 && renderResult.getPosition() <= availableWidth) {
+                    return cacheRenderResult(renderResult, formatContext, parentResult);
+                }
             }
         }
 
         /*
          * Single line didn't work out, so render multiline
          */
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
+        renderResult = new RenderMultiLines(this, formatContext, parentResult);
+        renderResult.setIndentBase(renderResult.getPosition());
         FormatContext contentContext = new FormatContext(config, formatContext)
-                .setAvailableWidth(availableWidth - standardIndent);
+                .setAvailableWidth(availableWidth - config.getStandardIndent());
         ScanResult node = getStartScanResult();
-        result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+        renderResult.addRenderResult(node.beautify(formatContext, renderResult, config), formatContext);
         if (config.getQueryConfig().isMajorKeywordsOnSeparateLine().booleanValue()) {
             /*
              * Sometimes a "major keyword" consists of more that one word. Think of SELECT DISTINCT or INTO STRICT. If
@@ -107,39 +119,39 @@ public abstract class ClauseThatStartsWithMajorKeyword extends SrcNode implement
                     if (node != null) {
                         node = node.getNext();
                         if (node != null) {
-                            result.addRenderResult(node.beautify(contentContext, result, config), formatContext);
+                            renderResult.addRenderResult(node.beautify(contentContext, renderResult, config),
+                                    formatContext);
                         }
                     }
                 } while (node != endOfKeyword);
             }
-            result.addLine();
+            renderResult.addLine();
         } else {
-            result.addWhiteSpace();
+            renderResult.addWhiteSpace();
         }
 
         int indent = 0;
         switch (config.getLogicalOperatorsIndent().getIndent()) {
         case DOUBLE_INDENTED:
-            indent = 2 * standardIndent;
+            indent = 2 * config.getStandardIndent();
             break;
         case INDENTED:
-            indent = standardIndent;
+            indent = config.getStandardIndent();
             break;
         case UNDER_FIRST_ARGUMENT:
         default:
-            indent = result.getPosition();
+            indent = renderResult.getPosition() - renderResult.getIndentBase();
             break;
         }
-        result.setIndent(indent);
-        contentContext = new FormatContext(config, formatContext)
-                .setAvailableWidth(availableWidth - indent);
+        renderResult.setIndent(indent);
+        contentContext = new FormatContext(config, formatContext).setAvailableWidth(availableWidth - indent);
         boolean passedBetweenKeyword = false;
         if (node != null) {
             for (node = node.getNext(); node != null; node = node.getNext()) {
-                RenderResult itemResult = node.beautify(contentContext, result, config);
-                if (result.getPosition() > indent
-                        && result.getPosition() + itemResult.getWidth() > availableWidth) {
-                    result.addLine();
+                RenderResult itemResult = node.beautify(contentContext, renderResult, config);
+                if (renderResult.getPosition() > renderResult.getIndentBase() + indent
+                        && renderResult.getPosition() + itemResult.getWidth() > availableWidth) {
+                    renderResult.addLine();
                 }
                 // The case where AND is used in the BETWEEN predicate should be excluded (e.g. a BETWEEN x AND y).
                 if (node instanceof IdentifierNode && "BETWEEN".equalsIgnoreCase(node.toString())) {
@@ -153,21 +165,21 @@ public abstract class ClauseThatStartsWithMajorKeyword extends SrcNode implement
                     case UNDER_FIRST_ARGUMENT:
                     case INDENTED:
                     case DOUBLE_INDENTED:
-                        result.addLine();
-                        result.addRenderResult(itemResult, contentContext);
+                        renderResult.addLine();
+                        renderResult.addRenderResult(itemResult, contentContext);
                         break;
                     default:
                         if (onSeparateLine) {
-                            result.addLine();
-                            result.addRenderResult(itemResult, contentContext);
-                            result.addLine();
+                            renderResult.addLine();
+                            renderResult.addRenderResult(itemResult, contentContext);
+                            renderResult.addLine();
                         } else {
-                            result.addRenderResult(itemResult, contentContext);
+                            renderResult.addRenderResult(itemResult, contentContext);
                         }
                         break;
                     }
                 } else {
-                    result.addRenderResult(itemResult, contentContext);
+                    renderResult.addRenderResult(itemResult, contentContext);
                 }
                 if ("AND".equalsIgnoreCase(node.toString())) {
                     passedBetweenKeyword = false;
@@ -176,7 +188,26 @@ public abstract class ClauseThatStartsWithMajorKeyword extends SrcNode implement
         }
 
         formatContext.setAvailableWidth(availableWidth);
-        return result;
+        return cacheRenderResult(renderResult, formatContext, parentResult);
+    }
+
+    /**
+     * @see ScanResult#getSingleLineWidth(FormatConfiguration)
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        if (singleLineWidth == 0) {
+            int elementWidth;
+            for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
+                elementWidth = node.getSingleLineWidth(config);
+                if (elementWidth < 0) {
+                    singleLineWidth = -1;
+                    break;
+                }
+                singleLineWidth += elementWidth;
+            }
+        }
+        return singleLineWidth;
     }
 
 }

@@ -88,14 +88,12 @@ public class TestCommentLine {
         String output = CodeFormatter.toStringResults(new StringReader(input), config).collect(Collectors.joining());
         Assertions.assertEquals(
         // @formatter:off
-                "select\n" +
-                "-- 1. this is a line comment\n" +
-                "a\n" +
-                "-- 2. this is a line comment\n" +
-                "b\n" +
-                "from some_table\n" +
-                "where a > b\n" +
-                "order by 1, 2;\n",
+                "select -- 1. this is a line comment\n"
+                + "a -- 2. this is a line comment\n"
+                + "b\n"
+                + "from some_table\n"
+                + "where a > b\n"
+                + "order by 1, 2;\n",
                 // @formatter:off
                 output.toString(),
                 "input: " + input);
@@ -146,14 +144,12 @@ public class TestCommentLine {
         String output = CodeFormatter.toStringResults(new StringReader(input), config).collect(Collectors.joining());
         Assertions.assertEquals(
         // @formatter:off
-                "select a\n" +
-                "       -- 1. this is a line comment\n" +
-                "     , b\n" +
-                "       -- 2. this is a line comment\n" +
-                "     , c\n" +
-                "from some_table\n" +
-                "where a > b\n" +
-                "order by 1, 2;\n",
+                "select a -- 1. this is a line comment\n"
+                + "     , b -- 2. this is a line comment\n"
+                + "     , c\n"
+                + "from some_table\n"
+                + "where a > b\n"
+                + "order by 1, 2;\n",
                 // @formatter:off
                 output.toString(),
                 "input: " + input);

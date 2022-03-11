@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2021
  *
  * This program is free software: You may redistribute and/or modify under the
  * terms of the GNU General Public License as published by the Free Software
@@ -32,7 +32,8 @@ import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
  * @since 0.0.1
  */
 public class ColumnConstraints extends SrcNode {
-    private RenderMultiLines renderedSimpleResult = null;
+    private RenderMultiLines singleLineResult = null;
+    private int singleLineLength = 0;
 
     /**
      * Constructor
@@ -68,21 +69,34 @@ public class ColumnConstraints extends SrcNode {
     @Override
     public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
-        if (renderedSimpleResult != null) {
+        if (singleLineResult != null) {
             /*
              * Return a cached render result
              */
-            return renderedSimpleResult;
+            return singleLineResult.clone();
         }
         RenderMultiLines result = Util.renderStraightForward(getStartScanResult(),
-                new RenderMultiLines(this, formatContext).setIndent(0), formatContext, config);
-        if (result.getHeight() <= 1) {
-            /*
-             * If the render result fits on a single line, then the result will not change if rendered again. So in that
-             * case we might as well cache it.
-             */
-            renderedSimpleResult = result;
-        }
+                new RenderMultiLines(this, formatContext, parentResult), formatContext, config);
         return result;
+    }
+
+    /**
+     * @see com.splendiddata.pgcode.formatter.scanner.ScanResult#getSingleLineWidth(com.splendiddata.pgcode.formatter.FormatConfiguration)
+     *
+     * @param config
+     * @return
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        if (singleLineLength != 0) {
+            return singleLineLength;
+        }
+        FormatContext context = new FormatContext(config, null);
+        singleLineResult = Util.renderStraightForward(getStartScanResult(),
+                new RenderMultiLines(this, context, null), context, config);
+        if (singleLineResult.getHeight() <= 1) {
+            singleLineLength = singleLineResult.getWidth();
+        }
+        return singleLineLength;
     }
 }

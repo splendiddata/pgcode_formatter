@@ -38,7 +38,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
-        <log4j.version>2.17.0</log4j.version>
+        <log4j.version>2.17.1</log4j.version>
         <jupiter.version>5.8.2</jupiter.version>
         <sql_parser.version>14.0</sql_parser.version>
         <javax.activation-api.version>1.2.0</javax.activation-api.version>

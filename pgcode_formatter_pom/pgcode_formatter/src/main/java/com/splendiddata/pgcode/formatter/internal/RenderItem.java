@@ -1,23 +1,18 @@
 /*
  * Copyright (c) Splendid Data Product Development B.V. 2020
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.internal;
-
-import java.util.LinkedList;
 
 import com.splendiddata.pgcode.formatter.scanner.ScanResult;
 
@@ -26,9 +21,7 @@ import com.splendiddata.pgcode.formatter.scanner.ScanResult;
  */
 public class RenderItem implements RenderResult {
     private String nonBreakableText;
-    private ScanResult startScanResult;
     private RenderItemType renderItemType;
-
 
     /**
      * Constructor.
@@ -42,7 +35,6 @@ public class RenderItem implements RenderResult {
      */
     public RenderItem(String nonBreakableText, ScanResult scanResult, RenderItemType renderItemType) {
         this.nonBreakableText = nonBreakableText;
-        this.startScanResult = scanResult;
         this.renderItemType = renderItemType;
     }
 
@@ -57,7 +49,6 @@ public class RenderItem implements RenderResult {
     public RenderItem(String nonBreakableText, RenderItemType renderItemType) {
         this(nonBreakableText, null, renderItemType);
     }
-    
 
     /**
      * @see java.lang.Object#clone()
@@ -67,15 +58,10 @@ public class RenderItem implements RenderResult {
     @Override
     public RenderItem clone() {
         try {
-            return (RenderItem)super.clone();
+            return (RenderItem) super.clone();
         } catch (CloneNotSupportedException e) {
             throw new RuntimeException("RenderItem appeared not cloneable after all", e);
         }
-    }
-
-    @Override
-    public ScanResult getStartScanResult() {
-        return startScanResult;
     }
 
     /**
@@ -146,54 +132,12 @@ public class RenderItem implements RenderResult {
     }
 
     /**
-     * Returns the {@link RenderResult} this.
-     *
-     * @return The {@link RenderResult} this.
-     */
-    @Override
-    public RenderResult getLast() {
-        return this;
-    }
-
-    /**
-     * There is only one RenderItem, so return this.
-     * 
-     * @return RenderItem this.
-     */
-    @Override
-    public RenderResult getFirst() {
-        return this;
-    }
-
-    /**
      * In case of RenderItem, it checks whether the render item type is RenderItemType.LINEFEED
      * 
      * @return true if the render item type is RenderItemType.LINEFEED
      */
     public boolean isLastNonWhiteSpaceEqualToLinefeed() {
         return RenderItemType.LINEFEED.equals(renderItemType);
-    }
-
-    /**
-     * @throws UnsupportedOperationException
-     *             whenever invoked
-     * @see com.splendiddata.pgcode.formatter.internal.RenderResult#addLineAtStart(boolean)
-     */
-    @Override
-    public RenderResult addLineAtStart(boolean lineExists) {
-        throw new UnsupportedOperationException(
-                "com.splendiddata.pgcode.formatter.scanner.structure.RenderItem.addLineAtStart(boolean) is not implemented");
-    }
-
-    /**
-     * Returns a list containing one {@link RenderItem} element.
-     *
-     * @return A list that contains {@link RenderItem} this.
-     */
-    public LinkedList<RenderItem> getRenderItems() {
-        LinkedList<RenderItem> renderItems = new LinkedList<>();
-        renderItems.add(this);
-        return renderItems;
     }
 
 }

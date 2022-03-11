@@ -34,12 +34,12 @@
     <caseOperand elsePosition="elseUnderThen" endPosition="endUnderCase">
         <maxSingleLineClause value="60" weight="5.0" />
         <whenPosition value="whenUnderCase" weight="10.0" />
-        <thenPosition value="thenIndented" weight="10.0" />
+        <thenPosition value="thenAfterWhenAligned" weight="10.0" minPosition="7" maxPosition="27" fallbackPosition="thenIndented"/>
     </caseOperand>
-    <caseWhen elsePosition="elseUnderWhen" endPosition="endUnderCase">
+    <caseWhen elsePosition="elseUnderThen" endPosition="endUnderCase">
         <maxSingleLineClause value="60" weight="5.0" />
-        <whenPosition value="whenIndented" />
-        <thenPosition value="thenAfterWhenAligned" weight="10.0" />
+        <whenPosition value="whenUnderCase" />
+        <thenPosition value="thenAfterWhenAligned" weight="10.0" minPosition="7" maxPosition="27" fallbackPosition="thenIndented"/>
     </caseWhen>
     <letterCaseKeywords>unchanged</letterCaseKeywords>
     <letterCaseFunctions>unchanged</letterCaseFunctions>
@@ -53,4 +53,11 @@
             <forStatement loop="singleLineAfterMultiLineUnder" />
         </codeSection>
     </languagePlpgsql>
+    <tableDefinition>
+        <argumentGrouping multilineOpeningParenBeforeArgument="true" multilineClosingParenOnNewLine="true">
+            <indent value="doubleIndented" weight="20" />
+        </argumentGrouping>
+        <dataType alignment="verticallyAligned" minPosition="15" maxPosition="35"/>
+        <columnContraint alignment="verticallyAligned" minPosition="40" maxPosition="50"/>
+    </tableDefinition>
 </ns2:configuration>

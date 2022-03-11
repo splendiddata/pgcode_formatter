@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -20,11 +17,8 @@ package com.splendiddata.pgcode.formatter.scanner.structure;
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
-import com.splendiddata.pgcode.formatter.internal.RenderItem;
-import com.splendiddata.pgcode.formatter.internal.RenderItemType;
 import com.splendiddata.pgcode.formatter.internal.RenderMultiLines;
 import com.splendiddata.pgcode.formatter.internal.RenderResult;
-import com.splendiddata.pgcode.formatter.internal.Util;
 import com.splendiddata.pgcode.formatter.scanner.ScanResult;
 import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
 
@@ -36,6 +30,14 @@ import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
  * @since 0.0.1
  */
 public class WithStatement extends SrcNode {
+
+    /**
+     * The insert, delete, insert or select statement that finishes the CTE(s)
+     */
+    private ScanResult actualStatement;
+
+    int singleLineWidth;
+
     /**
      * Constructor
      *
@@ -48,82 +50,42 @@ public class WithStatement extends SrcNode {
                 + startNode;
         ScanResult priorNode = getStartScanResult().locatePriorToNextInterpretable();
         ScanResult currentNode = priorNode.getNext();
-        if (currentNode != null && "recursive".equalsIgnoreCase(currentNode.toString())) {
-            priorNode.setNext(PostgresInputReader.toIdentifier(currentNode));
-            priorNode = priorNode.getNext().locatePriorToNextInterpretable();
-            currentNode = priorNode.getNext();
+        if (currentNode != null && currentNode.is(ScanResultType.IDENTIFIER)
+                && "recursive".equalsIgnoreCase(currentNode.toString())) {
+            currentNode = PostgresInputReader.toIdentifier(currentNode);
+            priorNode.setNext(currentNode);
+            priorNode = currentNode.locatePriorToNextInterpretable();
         }
-        if (currentNode == null || currentNode.isStatementEnd()) {
-            return;
-        }
-        currentNode = CommaSeparatedList.ofDistinctElementTypes(currentNode, node -> new WithQuery(node));
-        priorNode.setNext(currentNode);
-        priorNode = currentNode.locatePriorToNextInterpretable();
-        currentNode = PostgresInputReader.interpretStatementStart(priorNode.getNext());
-        priorNode.setNext(currentNode);
+        currentNode = CommaSeparatedList.withArbitraryEnd(priorNode.getNext(), node -> {
+            if (node.is(ScanResultType.IDENTIFIER)) {
+                return new WithQuery(node);
+            }
+            return PostgresInputReader.interpretStatementBody(node);
+        }, node -> {
+            if (!node.is(ScanResultType.IDENTIFIER)) {
+                return false;
+            }
+            switch (node.toString().toLowerCase()) {
+            case "select":
+            case "insert":
+            case "update":
+            case "delete":
+                return true;
+            default:
+                return false;
+            }
+        });
         if (currentNode != null) {
-            setNext(currentNode.getNext());
-            currentNode.setNext(null);
+            priorNode.setNext(currentNode);
+            priorNode = currentNode.locatePriorToNextInterpretable();
+            currentNode = PostgresInputReader.interpretStatementStart(priorNode.getNext());
+            if (currentNode != null) {
+                priorNode.setNext(currentNode);
+                setNext(currentNode.getNext());
+                currentNode.setNext(null);
+                actualStatement = currentNode;
+            }
         }
-    }
-
-    /**
-     * @see ScanResult#beautify(FormatContext, RenderMultiLines,
-     *      FormatConfiguration)
-     */
-    @Override
-    public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult, FormatConfiguration config) {
-        int availableWidth = formatContext.getAvailableWidth();
-        RenderMultiLines result = new RenderMultiLines(this, formatContext).setIndent(0);
-        ScanResult node;
-        FormatContext contentContext = new FormatContext(config, formatContext);
-        for (node = getStartScanResult(); node != null && result.getHeight() <= 1; node = node.getNext()) {
-            result.addRenderResult(
-                    node.beautify(contentContext.setAvailableWidth(availableWidth - result.getPosition()), result, config),
-                    formatContext);
-        }
-        /*
-         * straight forward rendering
-         */
-        if (result.getHeight() == 1 && result.getWidth() <= availableWidth) {
-            return result;
-        }
-
-        /*
-         * Doesn't fit, try again
-         */
-        String standardIndent = FormatContext.indent(true);
-        result = new RenderMultiLines(this, formatContext).setIndent(0);
-        for (node = getStartScanResult(); node != null
-                && !(node instanceof CommaSeparatedList); node = node.getNext()) {
-            result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
-        }
-        if (node == null) {
-            // restore available width
-            return result;
-        }
-
-        String withClauseStartIndent = standardIndent;
-        result.removeTrailingSpaces();
-        if (result.getPosition() == "with".length()) {
-            /* Only a the word "with", not "recursive" */
-            result.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
-            withClauseStartIndent = Util.nSpaces(result.getPosition());
-        } else {
-            withClauseStartIndent = standardIndent;
-            result.addLine(withClauseStartIndent);
-        }
-        result.setIndent(withClauseStartIndent);
-        result.addRenderResult(
-                node.beautify(contentContext.setAvailableWidth(availableWidth - withClauseStartIndent.length()), result, config),
-                formatContext);
-        formatContext.setAvailableWidth(availableWidth);
-        result.setIndent(0);
-        result.addLine();
-        for (node = node.getNextNonWhitespace(); node != null; node = node.getNext()) {
-            result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
-        }
-        return result;
     }
 
     /**
@@ -136,4 +98,57 @@ public class WithStatement extends SrcNode {
         return toString();
     }
 
+    /**
+     * @see SrcNode#beautify(FormatContext, RenderMultiLines, FormatConfiguration)
+     */
+    @Override
+    public RenderResult beautify(FormatContext formatContext, RenderMultiLines parentResult,
+            FormatConfiguration config) {
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
+        }
+        renderResult = new RenderMultiLines(this, formatContext, parentResult);
+        if (parentResult != null) {
+            renderResult.setIndentBase(parentResult.getPosition());
+        }
+        if (config.getQueryConfig().isIndent().booleanValue()) {
+            renderResult.setIndent(config.getStandardIndent());
+        }
+        for (ScanResult node = this.getStartScanResult(); node != null; node = node.getNext()) {
+            if (node == actualStatement) {
+                if (config.getQueryConfig().isIndent().booleanValue()) {
+                    renderResult.setIndent(config.getStandardIndent());
+                }
+                if (renderResult.getHeight() > 1
+                        || renderResult.getPosition() + node.getSingleLineWidth(config) > config.getQueryConfig()
+                                .getMaxSingleLineQuery().getValue()) {
+                    renderResult.addLine();
+                }
+            }
+            renderResult.addRenderResult(node.beautify(formatContext, renderResult, config), formatContext);
+        }
+
+        return cacheRenderResult(renderResult, formatContext, parentResult);
+    }
+
+    /**
+     * @see ScanResult#getSingleLineWidth(FormatConfiguration)
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        if (singleLineWidth != 0) {
+            return singleLineWidth;
+        }
+        int currentNodeWidth;
+        for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
+            currentNodeWidth = node.getSingleLineWidth(config);
+            if (currentNodeWidth < 0) {
+                singleLineWidth = -1;
+                return singleLineWidth;
+            }
+            singleLineWidth += currentNodeWidth;
+        }
+        return singleLineWidth;
+    }
 }

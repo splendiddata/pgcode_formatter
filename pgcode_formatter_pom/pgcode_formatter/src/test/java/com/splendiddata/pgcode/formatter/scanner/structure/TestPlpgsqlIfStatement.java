@@ -63,12 +63,14 @@ public class TestPlpgsqlIfStatement {
             PlpgsqlIfStatement stmt = new PlpgsqlIfStatement(postgresInputReader.getFirstResult());
             RenderResult renderResult = stmt.beautify(new FormatContext(config, null), null, config);
             output = renderResult.beautify();
-            Assertions.assertEquals("if ( SELECT ( CASE count(*)\n"
-                    + "              WHEN 0 then FALSE\n"
-                    + "              else TRUE\n"
-                    + "              END )\n"
-                    + "     FROM tbl_country2012_l1\n"
-                    + "     WHERE arrIx = v_key )\n"
+            Assertions.assertEquals("if (\n"
+                    + "   SELECT (\n"
+                    + "          CASE count(*)\n"
+                    + "          WHEN 0 then FALSE\n"
+                    + "                 else TRUE\n"
+                    + "          END )\n"
+                    + "   FROM tbl_country2012_l1\n"
+                    + "   WHERE arrIx = v_key )\n"
                     + "THEN\n"
                     + "    RAISE NOTICE 'f_AAString.....|***(Severe) KEY Jimi MUST NOT EXIST.';\n"
                     + "    v_ret := 0;\n"

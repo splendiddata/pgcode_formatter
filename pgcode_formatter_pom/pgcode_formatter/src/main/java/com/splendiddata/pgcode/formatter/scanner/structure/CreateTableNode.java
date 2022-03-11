@@ -1,18 +1,15 @@
 /*
- * Copyright (c) Splendid Data Product Development B.V. 2020
+ * Copyright (c) Splendid Data Product Development B.V. 2020 - 2022
  *
- * This program is free software: You may redistribute and/or modify under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at Client's option) any
- * later version.
+ * This program is free software: You may redistribute and/or modify under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of the License, or (at Client's option) any later
+ * version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, Client should obtain one via www.gnu.org/licenses/.
+ * You should have received a copy of the GNU General Public License along with this program. If not, Client should
+ * obtain one via www.gnu.org/licenses/.
  */
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
@@ -47,6 +44,8 @@ public class CreateTableNode extends SrcNode {
     private static final Logger log = LogManager.getLogger(CreateTableNode.class);
 
     private InParentheses columnsAndConstraints;
+
+    private int singleLineWidth;
 
     /**
      * Constructor.
@@ -175,19 +174,26 @@ public class CreateTableNode extends SrcNode {
     @Override
     public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult,
             FormatConfiguration config) {
+        RenderMultiLines renderResult = getCachedRenderResult(formatContext, parentResult, config);
+        if (renderResult != null) {
+            return renderResult;
+        }
+        int parentPosition = parentResult == null ? 0 : parentResult.getPosition();
+
         /*
          * how do we format the column definitions and constraints?
          */
         TableDefinitionType argumentListConfig = config.getTableDefinition();
         ArgumentDefinitionOffsets argumentDefinitionOffsets = getArgumentDefinitionOffsets(argumentListConfig);
-        RenderMultiLines result = new RenderMultiLines(this, formatContext);
+        FormatContext context = new FormatContext(config, formatContext)
+                .setArgumentDefinitionOffsets(argumentDefinitionOffsets)
+                .setCommaSeparatedListGrouping(config.getTableDefinition().getArgumentGrouping());
+        renderResult = new RenderMultiLines(this, context, parentResult).setIndentBase(parentPosition)
+                .setIndent(config.getStandardIndent());
 
         for (ScanResult node = getStartScanResult(); node != null; node = node.getNext()) {
             if (node == columnsAndConstraints) {
-                result.addRenderResult(node.beautify(
-                        new FormatContext(config, formatContext).setArgumentDefinitionOffsets(argumentDefinitionOffsets)
-                                .setCommaSeparatedListGrouping(config.getTableDefinition().getArgumentGrouping()),
-                        result, config), formatContext);
+                renderResult.addRenderResult(node.beautify(context, renderResult, config), context);
             } else if (node.is(ScanResultType.IDENTIFIER)) {
                 switch (node.toString().toLowerCase()) {
                 case "inherits":
@@ -196,17 +202,17 @@ public class CreateTableNode extends SrcNode {
                 case "with":
                 case "on":
                 case "tablespace":
-                    result.addLine();
+                    renderResult.addLine();
                     break;
                 default:
                     break;
                 }
-                result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+                renderResult.addRenderResult(node.beautify(context, renderResult, config), context);
             } else {
-                result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+                renderResult.addRenderResult(node.beautify(context, renderResult, config), context);
             }
         }
-        return result;
+        return cacheRenderResult(renderResult, formatContext, parentResult);
     }
 
     /**
@@ -313,6 +319,39 @@ public class CreateTableNode extends SrcNode {
 
         log.debug(() -> "getArgumentDefinitionOffsets() = " + result);
         return result;
+    }
+
+    /**
+     * @see com.splendiddata.pgcode.formatter.scanner.ScanResult#getSingleLineWidth(com.splendiddata.pgcode.formatter.FormatConfiguration)
+     *
+     * @param config
+     * @return
+     */
+    @Override
+    public int getSingleLineWidth(FormatConfiguration config) {
+        if (singleLineWidth == 0) {
+            for (ScanResult node = columnsAndConstraints.getStartScanResult(); node != null; node = node
+                    .getNextInterpretable()) {
+                if (node instanceof CommaSeparatedList) {
+                    if (((CommaSeparatedList) node).getElements().size() > 1) {
+                        singleLineWidth = -1;
+                        return singleLineWidth;
+                    }
+                    break;
+                }
+            }
+        }
+        int elementWidth;
+        for (ScanResult node = columnsAndConstraints.getStartScanResult(); node != null; node = node
+                .getNextInterpretable()) {
+            elementWidth = node.getSingleLineWidth(config);
+            if (elementWidth < 0) {
+                singleLineWidth = -1;
+                return singleLineWidth;
+            }
+            singleLineWidth += elementWidth;
+        }
+        return super.getSingleLineWidth(config);
     }
 
 }
