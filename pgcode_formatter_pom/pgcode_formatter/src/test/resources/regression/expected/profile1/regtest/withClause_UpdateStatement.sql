@@ -20,7 +20,8 @@ BEGIN
 					buildModified
 				FROM
 					BUILD;
-		 IF buildClose IS NOT NULL
+
+		IF buildClose IS NOT NULL
 		THEN
 			FOR curs IN (
 				SELECT DISTINCT

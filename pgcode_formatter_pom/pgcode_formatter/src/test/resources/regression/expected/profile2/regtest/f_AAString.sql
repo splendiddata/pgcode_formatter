@@ -198,7 +198,8 @@ BEGIN
 		v_ret := 0; -- should not get here ... should take no data found exception
 		RAISE NOTICE 'f_AAString.....|***(Severe) KEY Jimi MUST NOT be found.';
 	EXCEPTION
-		 WHEN no_data_found then
+
+		WHEN no_data_found then
 			RAISE NOTICE 'f_AAString.....| good, Jimi was not found.';
 	END;
 	--
@@ -242,7 +243,8 @@ BEGIN
 		v_ret := 0; -- should not get here ... should take no data found exception
 		RAISE NOTICE 'f_AAString.....|***(Severe) KEY 2 MUST NOT be found.';
 	EXCEPTION
-		 WHEN no_data_found then
+
+		WHEN no_data_found then
 			RAISE NOTICE 'f_AAString.....| good, entry 2 was deleted.';
 	END;
 	--
@@ -537,7 +539,8 @@ BEGIN
 	RAISE NOTICE 'f_AAString.....| exit with return val = %', v_ret;
 	RETURN v_ret;
 EXCEPTION
-	 WHEN OTHERS THEN
+
+	WHEN OTHERS THEN
 		RAISE NOTICE 'ERROR f_AAString sqlerrm: %', sqlerrm;
 		RETURN 0; -- error
 END; -- f_AAString

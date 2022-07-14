@@ -1201,7 +1201,7 @@ public class FormatConfiguration {
         if (leadingSpacesPattern == null) {
             assert !TabsOrSpacesType.TABS.equals(getTabs().getTabsOrSpaces()) && TabsOrSpacesType.TABS.equals(getIndent()
                     .getTabsOrSpaces()) : "getLeadingSpacesPattern() must only be invoked if configuration->tabs->tabsOrSpaces equals 'SPACES' and configuration->indent->tabsOrSpaces equals 'TABS'";
-            leadingSpacesPattern = Pattern.compile("\\n([\\s^\\n]+)");
+            leadingSpacesPattern = Pattern.compile("\\n([^\\S\\n]+)");
         }
         return leadingSpacesPattern;
     }

@@ -10,6 +10,7 @@ BEGIN
 		TEXT, '^\S+ function (.*) line [0-9]+ at .*',
 		E'\\1'
 		);
-	 RETURN a::VARCHAR;
+
+	RETURN a::VARCHAR;
 END;
 $function$

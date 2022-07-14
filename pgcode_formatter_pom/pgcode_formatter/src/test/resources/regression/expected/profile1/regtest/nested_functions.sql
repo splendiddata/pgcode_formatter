@@ -12,7 +12,8 @@ BEGIN
 END;
 $inner$
 	LANGUAGE plpgsql;
-	 SELECT
+
+	SELECT
 		inner()
 		INTO
 			s;
