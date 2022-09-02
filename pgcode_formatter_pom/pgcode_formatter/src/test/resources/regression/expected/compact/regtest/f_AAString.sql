@@ -151,7 +151,7 @@ BEGIN
 		RAISE NOTICE 'f_AAString.....|***(Severe) KEY Jimi MUST NOT be found.';
 	EXCEPTION
 
-		WHEN no_data_found then
+		WHEN no_data_found THEN
 			RAISE NOTICE 'f_AAString.....| good, Jimi was not found.';
 	END;
 	--
@@ -160,7 +160,7 @@ BEGIN
 	IF (
 		SELECT (
 				CASE count(*)
-				WHEN 0 then FALSE
+				WHEN 0 THEN FALSE
 				ELSE TRUE
 				END )
 		FROM tbl_country2012_l1
@@ -185,7 +185,7 @@ BEGIN
 		RAISE NOTICE 'f_AAString.....|***(Severe) KEY 2 MUST NOT be found.';
 	EXCEPTION
 
-		WHEN no_data_found then
+		WHEN no_data_found THEN
 			RAISE NOTICE 'f_AAString.....| good, entry 2 was deleted.';
 	END;
 	--

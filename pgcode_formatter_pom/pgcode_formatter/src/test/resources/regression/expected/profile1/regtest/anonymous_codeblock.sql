@@ -36,13 +36,13 @@ BEGIN
 			another_column > a_constant;
 	another STATEMENT containing the word EXCEPTION, which has NO meaning here;
 exception
-	when NOT found then
+	WHEN NOT found THEN
 		RAISE NOTICE 'not found';
 		INSERT INTO some_schema.some_table(a_column, another_column, reason, create_timestamp)
 			VALUES
 				(-1, 'this value is wrong', $text$the value was not found$text$, CURRENT_TIMESTAMP);
 		RETURN -1;
-	when other     then
+	WHEN other     THEN
 		RAISE NOTICE $msg$something went very wriong$msg$;
 		RETURN -2;
 END;

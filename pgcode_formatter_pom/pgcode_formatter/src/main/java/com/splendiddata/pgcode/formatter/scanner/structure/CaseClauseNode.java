@@ -57,7 +57,7 @@ public class CaseClauseNode extends SrcNode {
      *            The node that contains "case"
      */
     public CaseClauseNode(ScanResult startNode) {
-        super(ScanResultType.CASE_CLAUSE, startNode);
+        super(ScanResultType.CASE_CLAUSE, new IdentifierNode(startNode));
         assert "case".equalsIgnoreCase(startNode.getText()) : "Expecting 'CASE' but found: " + startNode.getText();
         ScanResult priorNode = startNode;
         ScanResult nextNode;
@@ -101,7 +101,7 @@ public class CaseClauseNode extends SrcNode {
             priorNode.setNext(null);
         }
         if (nextNode != null && "end".equalsIgnoreCase(nextNode.getText())) {
-            endNode = nextNode;
+            endNode = new IdentifierNode(nextNode);
             nextNode = nextNode.getNext();
             endNode.setNext(null);
         }

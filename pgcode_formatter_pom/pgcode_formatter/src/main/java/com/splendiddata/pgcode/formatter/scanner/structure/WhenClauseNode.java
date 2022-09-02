@@ -54,14 +54,11 @@ public class WhenClauseNode extends SrcNode {
      *            Is this when clause part of a case statement (true) or a case clause (false)
      */
     public WhenClauseNode(ScanResult startNode, Function<ScanResult, SrcNode> interpreter, boolean isStatement) {
-        super(ScanResultType.WHEN_THEN_CLAUSE, startNode);
+        super(ScanResultType.WHEN_THEN_CLAUSE, new IdentifierNode(startNode));
+        assert "when".equalsIgnoreCase(startNode.toString()) : "Expecting 'WHEN' but got: " + startNode;
         this.isStatement = isStatement;
-        ScanResult cur = startNode;
-        if (!"when".equalsIgnoreCase(cur.toString())) {
-            // a when statement may start with comment
-            cur = cur.getNextInterpretable();
-        }
-        assert "when".equalsIgnoreCase(cur.toString()) : "Expecting 'WHEN' but got: " + cur;
+        ScanResult cur = getStartScanResult();
+
         whenExpression = PostgresInputReader.interpretStatementBody(cur.getNext());
         cur.setNext(null);
         ScanResult prior = whenExpression;
@@ -77,6 +74,9 @@ public class WhenClauseNode extends SrcNode {
             return;
         }
         thenExpression = cur;
+        if ("then".equalsIgnoreCase(cur.toString())) {
+            thenExpression = new IdentifierNode(cur);
+        }
         for (cur = cur.getNextInterpretable(); !cur.isEof()
                 && !END_OF_WHEN_PATTERN.matcher(cur.toString()).matches(); cur = cur.getNextInterpretable()) {
             if (cur.isStatementEnd()) {
