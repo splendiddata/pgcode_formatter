@@ -520,6 +520,8 @@ public class RenderMultiLines implements RenderResult {
             lastLine.append(Util.nSpaces(position - currentPosition));
         } else if (currentPosition > position) {
             addLine(Util.nSpaces(position));
+        } else if (lastLine.length() > 0 && lastLine.charAt(lastLine.length() - 1) != ' '){
+            addLine(Util.nSpaces(position));
         }
     }
 

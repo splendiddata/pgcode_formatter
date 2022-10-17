@@ -212,7 +212,7 @@ public class CreateFunctionNode extends SrcNode {
         } else if (language != null) {
             result = language.toString();
         }
-        return result.toLowerCase();
+        return result != null ? result.toLowerCase() : result;
     }
 
     /**

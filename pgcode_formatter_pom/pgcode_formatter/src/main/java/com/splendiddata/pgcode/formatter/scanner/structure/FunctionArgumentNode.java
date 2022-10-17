@@ -17,9 +17,6 @@
 
 package com.splendiddata.pgcode.formatter.scanner.structure;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.splendiddata.pgcode.formatter.FormatConfiguration;
 import com.splendiddata.pgcode.formatter.internal.FormatContext;
 import com.splendiddata.pgcode.formatter.internal.PostgresInputReader;
@@ -28,6 +25,8 @@ import com.splendiddata.pgcode.formatter.internal.RenderItemType;
 import com.splendiddata.pgcode.formatter.internal.RenderMultiLines;
 import com.splendiddata.pgcode.formatter.scanner.ScanResult;
 import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Declaration of a function argument
@@ -38,7 +37,7 @@ import com.splendiddata.pgcode.formatter.scanner.ScanResultType;
 public class FunctionArgumentNode extends SrcNode {
     private static final Logger log = LogManager.getLogger(FunctionArgumentNode.class);
 
-    private final String mode;
+    private String mode;
     private final String name;
     private final String dataType;
     private final String defaultIndicator;
@@ -128,6 +127,22 @@ public class FunctionArgumentNode extends SrcNode {
             name = "";
         }
 
+        /*
+         * According to postgres documentation:
+         * For compatibility with some other database systems, argument mode can be written
+         * either before or after argument name. But only the first way is standard-compliant.
+         * So try again to find Mode (if any)
+         */
+        switch (currentNode.toString().toLowerCase()) {
+            case "in":
+            case "out":
+            case "inout":
+            case "variadic":
+                mode = currentNode.toString();
+                currentNode = currentNode.getNextInterpretable();
+                break;
+        }
+
         StringBuilder buf = new StringBuilder(currentNode.toString());
         for (currentNode = currentNode.getNextInterpretable(); currentNode != null
                 && !"=".equals(currentNode.toString())
@@ -195,7 +210,7 @@ public class FunctionArgumentNode extends SrcNode {
      * @return RenderMultiLines The render result
      */
     public RenderMultiLines beautify(FormatContext formatContext, RenderMultiLines parentResult, FormatConfiguration config) {
-        ArgumentDefinitionOffsets argumentDefinitionOffsets = formatContext.getArgumentDefinitionOffsets();  
+        ArgumentDefinitionOffsets argumentDefinitionOffsets = formatContext.getArgumentDefinitionOffsets();
         log.debug(() -> new StringBuilder().append("beautify <").append(this).append(">, offsets=")
                 .append(argumentDefinitionOffsets));
         RenderMultiLines result = new RenderMultiLines(this, formatContext, parentResult);
@@ -209,9 +224,14 @@ public class FunctionArgumentNode extends SrcNode {
          * mode (if any)
          */
         if (!"".equals(mode)) {
-            result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
-            for (node = node.getNext(); node != null && !node.getType().isInterpretable(); node = node.getNext()) {
+            if (mode.equalsIgnoreCase(node.toString())) {
                 result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+                for (node = node.getNext(); node != null && !node.getType().isInterpretable(); node = node.getNext()) {
+                    result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+                }
+            } else {
+                result.addRenderResult(new IdentifierNode(mode).beautify(formatContext, result, config), formatContext);
+                result.addWhiteSpaceIfApplicable();
             }
         }
 
@@ -223,6 +243,16 @@ public class FunctionArgumentNode extends SrcNode {
                 result.positionAt(parentOffset + argumentDefinitionOffsets.getNameOffset().intValue());
             }
             result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+            for (node = node.getNext(); node != null && !node.getType().isInterpretable(); node = node.getNext()) {
+                result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
+            }
+        }
+
+        /*
+         * mode (if any)
+         * Skip mode as it has already been added
+         */
+        if (!"".equals(mode) && mode.equalsIgnoreCase(node.toString())) {
             for (node = node.getNext(); node != null && !node.getType().isInterpretable(); node = node.getNext()) {
                 result.addRenderResult(node.beautify(formatContext, result, config), formatContext);
             }

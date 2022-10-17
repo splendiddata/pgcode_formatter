@@ -137,8 +137,8 @@ CREATE OR REPLACE VIEW v1 (
 		max(tb1.col1) t,
 		stg.st1,
 		CASE
-			when min(tb1.col1) = max(tb1.col1) then 'case 1'
-			when min(tb1.col1) < max(tb1.col1) then 'case 2'
+			WHEN min(tb1.col1) = max(tb1.col1) THEN 'case 1'
+			WHEN min(tb1.col1) < max(tb1.col1) THEN 'case 2'
 			ELSE 'other cases'
 		END st2
 		FROM

@@ -31,10 +31,12 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.splendiddata.pgcode.formatter.internal.Util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
@@ -73,6 +75,8 @@ public class RegressionTest {
     private static Path configDirectory;
     private static Path outputBaseDirectory;
     private static Path expectedBaseDirectory;
+    private static Path outputCompletenessDirectory;
+    private static Path expectedCompletenessDirectory;
 
     /**
      * Tries to figure out the base path of the project. Different editors / running environments sometimes have
@@ -117,6 +121,13 @@ public class RegressionTest {
         expectedBaseDirectory = Paths.get(projectDirectory.toString(), "src/test/resources/regression/expected")
                 .toAbsolutePath();
         log.debug(() -> "expectedBaseDirectory = " + expectedBaseDirectory);
+
+        outputCompletenessDirectory = Paths.get(projectDirectory.toString(), "target/test/completeness/out").toAbsolutePath();
+        log.debug(() -> "outputCompletenessDirectory = " + outputCompletenessDirectory);
+        expectedCompletenessDirectory = Paths.get(projectDirectory.toString(), "src/test/resources/regression/expected/completenessTest")
+                .toAbsolutePath();
+        log.debug(() -> "expectedCompletenessDirectory = " + expectedCompletenessDirectory);
+
     }
 
     /**
@@ -247,7 +258,7 @@ public class RegressionTest {
                 }
             }
 
-            checkQueries(input, output);
+            checkQueries(input, output, testCase);
         } catch (IOException e) {
             log.error("Error while processing " + testCase, e);
             Assertions.fail(e.toString(), e);
@@ -308,7 +319,7 @@ public class RegressionTest {
                 }
             }
 
-            checkQueries(input, output);
+            checkQueries(input, output, testCase);
         } catch (IOException e) {
             log.error("Error while processing " + testCase, e);
             Assertions.fail(e.toString(), e);
@@ -339,7 +350,7 @@ public class RegressionTest {
      * @throws IOException
      *             Never thrown
      */
-    private void checkQueries(String input, String output) throws IOException {
+    private void checkQueries(String input, String output, TestCase testCase) throws IOException {
         List<String> inputParseErrors = new ArrayList<>();
         List<String> outputParseErrors = new ArrayList<>();
         SqlParser inputParser = new com.splendiddata.sqlparser.SqlParser(new StringReader(input),
@@ -358,7 +369,81 @@ public class RegressionTest {
                     outputParser.getResult().stream().map(stmt -> maskFunctionBody(stmt, outputParseErrors))
                             .map(stmt -> stmt.toString()).collect(Collectors.toList()),
                     "Difference between inputParser.getResult() and outputParser.getResult()");
+        } else {
+            // Cache the formatted output
+            String formattedOutput = output;
+
+            String expected = "";
+            if (testCase.getExpectedCompletenessFile().toFile().exists()) {
+                expected = new String(Files.readAllBytes(testCase.getExpectedCompletenessFile()));
+            } else {
+                log.info(testCase.getExpectedCompletenessFile().toAbsolutePath() + " does not exist");
+            }
+
+            expected = replace(expected).toLowerCase();
+            output = replace(output).toLowerCase();
+
+            if (!output.equalsIgnoreCase(expected)) {
+                log.trace("expected  =\"\n" + expected + "\"\n");
+                log.trace("output =\"\n" + output + "\"\n");
+                allOk = false;
+
+                Path parent = testCase.getOutputCompletenessFile().getParent();
+                Path fileName = testCase.getOutputCompletenessFile().getFileName();
+                Path expectedPath = Paths.get(parent.toString() + "/expected/" + fileName);
+                Path outputPath = Paths.get(parent.toString() + "/output/" + fileName);
+                Path formattedOutputPath = testCase.getOutputCompletenessFile();
+
+                filesInError.append("\n    ").append(outputPath);
+                Files.createDirectories(outputPath.getParent());
+                Files.createDirectories(expectedPath.getParent());
+
+                try (BufferedWriter inputWriter = Files.newBufferedWriter(expectedPath, StandardCharsets.UTF_8);
+                     BufferedWriter outputWriter = Files.newBufferedWriter(outputPath, StandardCharsets.UTF_8)) {
+                    inputWriter.append(expected.replaceAll("\\s", "\n"));
+                    outputWriter.append(output.replaceAll("\\s", "\n"));
+                }
+
+                Files.createDirectories(formattedOutputPath.getParent());
+                try (BufferedWriter writer = Files.newBufferedWriter(formattedOutputPath, StandardCharsets.UTF_8)) {
+                    writer.append(formattedOutput);
+                }
+                Assertions.assertEquals(expected, output, "Completeness check: Difference between expected and output");
+            }
         }
+    }
+
+    /**
+     * Removes tabs, spaces and new lines from the provided input
+     *
+     * @param input
+     *            The String that has to be adapted
+     * @return The adapted String
+     */
+    private String replace(String input) {
+        input = input.trim();
+
+        if (input.contains("\\")) {
+            LinkedList<SplitData> split = Util.parseInput(input);
+            StringBuilder result = new StringBuilder();
+            for (int i = 0; i < split.size(); i++) {
+                SplitData part = split.get(i);
+                String text = part.getText();
+                text = text.replace("\n", " ");
+                if (SplitDataType.TEXT.equals(part.getType()) && part.getText().contains("\\")) {
+                    part.setText(text.replaceAll("\\\\\\\\", " "));
+                }
+
+                result.append(part.getText());
+            }
+            input = result.toString().replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+(\\W)", "$1").replaceAll("\\s+",
+                    " ");
+        } else {
+            input = input.replace("\n", " ");
+            input = input.replaceAll("(\\W)\\s+", "$1").replaceAll("\\s+(\\W)", "$1").replaceAll("\\s+", " ");
+        }
+
+        return input;
     }
 
     /**
@@ -393,22 +478,26 @@ public class RegressionTest {
             return stmt;
         }
         String language = "plpgsql";
-        for (DefElem defElem : defElemList) {
-            if ("language".equals(defElem.defname)) {
-                language = defElem.arg.toString();
+        if (defElemList != null) {
+            for (DefElem defElem : defElemList) {
+                if ("language".equals(defElem.defname)) {
+                    language = defElem.arg.toString();
+                }
             }
         }
         switch (language.toLowerCase()) {
         case "plpgsql":
-            for (DefElem defElem : defElemList) {
-                Value bodyContent;
-                if ("as".equals(defElem.defname)) {
-                    if (NodeTag.T_List.equals(defElem.arg.type)) {
-                        bodyContent = ((List<Value>) defElem.arg).get(0);
-                    } else {
-                        bodyContent = (Value) defElem.arg;
+            if (defElemList != null) {
+                for (DefElem defElem : defElemList) {
+                    Value bodyContent;
+                    if ("as".equals(defElem.defname)) {
+                        if (NodeTag.T_List.equals(defElem.arg.type)) {
+                            bodyContent = ((List<Value>) defElem.arg).get(0);
+                        } else {
+                            bodyContent = (Value) defElem.arg;
+                        }
+                        bodyContent.val.str = "*** the plpgsql function body cannot be tested by an sql parser only, so is taken out of the comparison here ***";
                     }
-                    bodyContent.val.str = "*** the plpgsql function body cannot be tested by an sql parser only, so is taken out of the comparison here ***";
                 }
             }
             break;
@@ -445,6 +534,7 @@ public class RegressionTest {
         private final Path sourceFile;
         private final Path configFile;
         private final Path relativeOutputPath;
+        private final Path relativeCompletenessPath;
 
         /**
          * Constructor
@@ -460,6 +550,7 @@ public class RegressionTest {
             this.configFile = configFile;
             relativeOutputPath = Paths.get(configFile.getFileName().toString().replaceAll("\\.[^.]+$", ""),
                     inputBaseDirectory.relativize(sourceFile).toString());
+            relativeCompletenessPath = Paths.get(inputBaseDirectory.relativize(sourceFile).toString());
         }
 
         /**
@@ -486,6 +577,15 @@ public class RegressionTest {
         }
 
         /**
+         * Returns the path to the output file that is to be created by the test
+         *
+         * @return Path The file into which the output is to be generated
+         */
+        public Path getOutputCompletenessFile() {
+            return Paths.get(outputCompletenessDirectory.toString(), relativeOutputPath.toString()).toAbsolutePath();
+        }
+
+        /**
          * Returns the path to the file that contains the source file formatted as expected given the settings in the
          * config file.
          * <p>
@@ -499,7 +599,19 @@ public class RegressionTest {
         }
 
         /**
-         * @see java.lang.Object#toString()
+         * Returns the path to the file that contains the expected file for the completeness test
+         * <p>
+         * The file may not exist (yet)
+         * </p>
+         *
+         * @return Path The file that should contain the expected file to check against
+         */
+        public Path getExpectedCompletenessFile() throws IOException {
+            return Paths.get(expectedCompletenessDirectory.toString(), relativeCompletenessPath.toString()).toAbsolutePath();
+        }
+
+        /**
+         * @see Object#toString()
          *
          * @return String describing the test case
          */
