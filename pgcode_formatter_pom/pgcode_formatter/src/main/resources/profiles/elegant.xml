@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:configuration xmlns:ns2="http://www.splendiddata.com/plpgsql-code-formatter/1.0/" emptyLine="preserveOne">
+    <lineWidth value="160" weight="10.0"/>
+    <tabs tabWidth="4" tabsOrSpaces="spaces"/>
+    <indent indentWidth="4" tabsOrSpaces="spaces"/>
+    <queryConfig majorKeywordsOnSeparateLine="false" indent="false">
+        <maxSingleLineQuery value="80" weight="5.0"/>
+    </queryConfig>
+    <commaSeparatedListGrouping multilineOpeningParenBeforeArgument="true" multilineClosingParenOnNewLine="false">
+        <maxSingleLineLength value="100" weight="10.0"/>
+        <maxArgumentsPerGroup value="5" weight="10.0"/>
+        <maxLengthOfGroup value="70" weight="10.0"/>
+        <indent value="underFirstArgument" weight="10.0"/>
+        <commaBeforeOrAfter>before</commaBeforeOrAfter>
+    </commaSeparatedListGrouping>
+    <functionCallArgumentGrouping multilineOpeningParenBeforeArgument="true" multilineClosingParenOnNewLine="false">
+        <maxSingleLineLength value="100" weight="10.0"/>
+        <maxArgumentsPerGroup value="5" weight="10.0"/>
+        <maxLengthOfGroup value="70" weight="10.0"/>
+        <indent value="underFirstArgument" weight="10.0"/>
+        <commaBeforeOrAfter>before</commaBeforeOrAfter>
+    </functionCallArgumentGrouping>
+    <functionDefinitionArgumentGrouping defaultIndicator="asIs" argumentModePosition="beforeName">
+        <argumentGrouping multilineOpeningParenBeforeArgument="false" multilineClosingParenOnNewLine="false">
+            <maxSingleLineLength value="80" weight="10.0"/>
+            <maxArgumentsPerGroup value="5" weight="10.0"/>
+            <maxLengthOfGroup value="70" weight="10.0"/>
+            <indent value="doubleIndented" weight="10.0"/>
+            <commaBeforeOrAfter>before</commaBeforeOrAfter>
+        </argumentGrouping>
+        <argumentName alignment="verticallyAligned" minPosition="0" maxPosition="9"/>
+        <dataType alignment="verticallyAligned" minPosition="0" maxPosition="40"/>
+        <defaultValue alignment="verticallyAligned" minPosition="5" maxPosition="60"/>
+    </functionDefinitionArgumentGrouping>
+    <tableDefinition>
+        <argumentGrouping multilineOpeningParenBeforeArgument="true" multilineClosingParenOnNewLine="false">
+            <maxSingleLineLength value="1" weight="1.0"/>
+            <maxArgumentsPerGroup value="1" weight="10.0"/>
+            <maxLengthOfGroup value="1" weight="1.0"/>
+            <indent value="doubleIndented" weight="10.0"/>
+            <commaBeforeOrAfter>before</commaBeforeOrAfter>
+        </argumentGrouping>
+        <dataType alignment="verticallyAligned" minPosition="5" maxPosition="40"/>
+        <columnContraint alignment="verticallyAligned" minPosition="10" maxPosition="60"/>
+    </tableDefinition>
+    <fromItemGrouping comma="before" multilineOpeningParenBeforeArgument="true" multilineClosingParenOnNewLine="false">
+        <maxSingleLineLength value="80" weight="10.0"/>
+        <aliasAlignment alignment="verticallyAligned" minPosition="10" maxPosition="60"/>
+    </fromItemGrouping>
+    <targetListGrouping multilineOpeningParenBeforeArgument="true" multilineClosingParenOnNewLine="false">
+        <maxSingleLineLength value="80" weight="10.0"/>
+        <maxArgumentsPerGroup value="5" weight="10.0"/>
+        <maxLengthOfGroup value="50" weight="10.0"/>
+        <indent value="underFirstArgument" weight="10.0"/>
+        <commaBeforeOrAfter>before</commaBeforeOrAfter>
+    </targetListGrouping>
+    <logicalOperatorsIndent indent="underFirstArgument"/>
+    <caseOperand elsePosition="elseUnderThen" endPosition="endUnderCase">
+        <maxSingleLineClause value="80" weight="10.0"/>
+        <whenPosition value="whenUnderCase" weight="10.0"/>
+        <thenPosition value="thenAfterWhenAligned" weight="10.0"/>
+    </caseOperand>
+    <caseWhen elsePosition="elseUnderThen" endPosition="endUnderCase">
+        <maxSingleLineClause value="80" weight="10.0"/>
+        <whenPosition value="whenAfterCase" weight="10.0"/>
+        <thenPosition value="thenAfterWhenAligned" weight="10.0"/>
+    </caseWhen>
+    <letterCaseKeywords>uppercase</letterCaseKeywords>
+    <letterCaseFunctions>lowercase</letterCaseFunctions>
+    <languagePlpgsql>
+        <declareSection>
+            <dataTypePosition alignment="verticallyAligned" minPosition="30" maxPosition="60" constantPosition="alignedBeforeDataType"/>
+        </declareSection>
+        <codeSection>
+            <ifStatement then="singleLineAfterMultiLineUnder" conditionIndent="indented"/>
+            <forStatement loop="singleLineAfterMultiLineUnder"/>
+        </codeSection>
+    </languagePlpgsql>
+</ns2:configuration>
