@@ -14,13 +14,12 @@
 
 package com.splendiddata.pgcode.formatter.internal;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import com.splendiddata.pgcode.formatter.scanner.ScanResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.splendiddata.pgcode.formatter.scanner.ScanResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class for rendering result. It consists of one or more lines. A line is a string ended by a line separator string or
@@ -44,7 +43,9 @@ public class RenderMultiLines implements RenderResult {
      * <li>m.group(2) will contain the trailing spaces (or an empty string if there were'nt any)</li>
      * </ul>
      */
-    private static final Pattern TRAILING_SPACES_PATTERN = Pattern.compile("^(.*?)(\\s*)$");
+    //    private static final Pattern TRAILING_SPACES_PATTERN = Pattern.compile("^(.*?)(\\s+)$", Pattern.MULTILINE);
+
+    private static final Pattern TRAILING_SPACES_PATTERN = Pattern.compile("^(.*?)(\\s+)$");
     private static final Pattern LEADING_SPACES_PATTERN = Pattern.compile("^(\\s*)(\\S.*)?$");
     private static final Pattern FIRST_LAST_LINES_SEPARATE_PATTERN = Pattern.compile("^([^\\n]*)\\n(.*?)([^\\n]*)$",
             Pattern.DOTALL);
@@ -244,9 +245,15 @@ public class RenderMultiLines implements RenderResult {
          * Remove trailing spaces
          */
         Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
-        m.matches();
-        String line = m.group(1);
-        buffer.append(line);
+        String line = "";
+        if (m.matches()) {
+            line = m.group(1);
+            buffer.append(line);
+        } else {
+            line = lastLine.toString();
+            buffer.append(line);
+        }
+
         if (preserveLineFeedPosition < 0) {
             preserveLineFeedPosition = buffer.length();
         }
@@ -334,8 +341,9 @@ public class RenderMultiLines implements RenderResult {
             throw new IllegalStateException("removeTrailingSpaces() invoked after beautify()");
         }
         Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
-        m.matches();
-        lastLine.setLength(lastLine.length() - m.group(2).length());
+        if (m.matches()) {
+            lastLine.setLength(lastLine.length() - m.group(2).length());
+        }
     }
 
     /**
@@ -356,6 +364,8 @@ public class RenderMultiLines implements RenderResult {
         Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
         if (m.matches() && m.group(1).length() > 0) {
             lastLine.setLength(m.group(1).length());
+        } else if (!m.matches() && lastLine.length() > 0) {
+            int a =1;
         } else if (buffer != null) {
             if (preserveLineFeedPosition < -1) {
                 preserveLineFeedPosition = buffer.length();
@@ -403,10 +413,16 @@ public class RenderMultiLines implements RenderResult {
     public int getWidth() {
         if (lastLine != null) {
             Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
-            m.matches();
-            int actualWidth = m.group(1).length();
-            if (actualWidth > width) {
-                return actualWidth;
+            if (m.matches()) {
+                int actualWidth = m.group(1).length();
+                if (actualWidth > width) {
+                    return actualWidth;
+                }
+            } else {
+                int actualWidth = lastLine.length();
+                if (actualWidth > width) {
+                    return actualWidth;
+                }
             }
         }
         return width;
@@ -421,8 +437,11 @@ public class RenderMultiLines implements RenderResult {
     public int getWidthFirstLine() {
         if (buffer == null) {
             Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
-            m.matches();
-            return m.group(1).length();
+            if (m.matches()) {
+                return m.group(1).length();
+            } else {
+                return lastLine.length();
+            }
         }
         int widthFirstLine = buffer.indexOf("\n");
         if (widthFirstLine < 0) {
@@ -463,12 +482,16 @@ public class RenderMultiLines implements RenderResult {
             return buffer.toString();
         }
         Matcher m = TRAILING_SPACES_PATTERN.matcher(lastLine);
+        String ret = lastLine.toString();
         lastLine = null;
-        m.matches();
         if (buffer == null) {
-            return m.group(1);
+            if (m.matches()) {
+                return m.group(1);
+            } else {
+                return ret;
+            }
         }
-        return buffer.append("\n").append(m.group(1)).toString();
+        return buffer.append("\n").append(ret).toString();
     }
 
     /**
@@ -504,8 +527,9 @@ public class RenderMultiLines implements RenderResult {
             RenderMultiLines res = this;
             while (res != null && currentPosition > position) {
                 Matcher m = TRAILING_SPACES_PATTERN.matcher(res.lastLine);
-                m.matches();
-                res.lastLine.setLength(m.group(1).length());
+                if (m.matches()) {
+                    res.lastLine.setLength(m.group(1).length());
+                }
                 currentPosition = currentParentPosition + res.lastLine.length();
                 if (buffer != null || res.lastLine.length() > 0) {
                     break;
