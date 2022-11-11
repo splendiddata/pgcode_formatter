@@ -377,6 +377,17 @@ public class CommaSeparatedList extends SrcNode {
                     renderResult.addRenderResult(new RenderItem(" ", RenderItemType.WHITESPACE), formatContext);
                 } else {
                     renderResult.positionAfterLastNonWhitespace();
+                    if (it.hasPrevious()) {
+                        ListIterator<ListElement> it1 = getElements().listIterator(it.previousIndex());
+                        if (it1.hasPrevious()) {
+                            ListElement previousElement = it1.previous();
+                            ScanResult lastNode = previousElement.getLastNode();
+                            if (lastNode != null && lastNode.is(ScanResultType.COMMENT_LINE)) {
+                                renderResult.addLine();
+                                renderResult.positionAt(newLinePosition);
+                            }
+                        }
+                    }
                     renderResult.addRenderResult(new RenderItem(",", RenderItemType.CHARACTER), formatContext);
                     renderResult.positionAt(newLinePosition);
                 }

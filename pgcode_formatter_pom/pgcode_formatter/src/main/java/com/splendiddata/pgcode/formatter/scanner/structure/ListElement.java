@@ -70,6 +70,22 @@ public class ListElement extends SrcNode {
         return cacheRenderResult(renderResult, formatContext, parentResult);
     }
 
+
+    /**
+     * Gets last node of ListElement.
+     * @return Last node of ListElement
+     */
+    public ScanResult getLastNode() {
+        ScanResult startNode = getStartScanResult();
+        ScanResult priorNode = startNode;
+        ScanResult nextNode;
+        for (nextNode = startNode.getNext(); nextNode != null && !nextNode.isEof(); nextNode = priorNode.getNext()) {
+            priorNode = nextNode;
+        }
+
+        return priorNode;
+    }
+
     /**
      * @see ScanResult#getSingleLineWidth(FormatConfiguration)
      */
