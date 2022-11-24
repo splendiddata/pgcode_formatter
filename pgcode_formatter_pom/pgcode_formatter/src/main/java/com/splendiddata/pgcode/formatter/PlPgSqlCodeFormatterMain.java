@@ -24,6 +24,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
@@ -105,9 +106,7 @@ public final class PlPgSqlCodeFormatterMain {
      * Available configuration profiles.
      */
     static {
-        configProfiles = Map.ofEntries(Map.entry("compact", "/compact.xml"), Map.entry("profile1", "/profile1.xml"),
-                Map.entry("profile2", "/profile2.xml"), Map.entry("profile3", "/profile3.xml"),
-                Map.entry("profile4", "/profile4.xml"));
+        configProfiles = Map.ofEntries(Map.entry("compact", "/compact.xml"), Map.entry("elegant", "/elegant.xml"));
     }
 
     /**
@@ -269,11 +268,9 @@ public final class PlPgSqlCodeFormatterMain {
         Path profilesDirectory = Paths.get("profiles");
         StringBuilder contentBuilder = new StringBuilder();
         String profileName = "";
+        optionValue = optionValue.toLowerCase();
         switch (optionValue) {
-        case "profile1":
-        case "profile2":
-        case "profile3":
-        case "profile4":
+        case "elegant":
         case "compact":
             result = Paths.get(profilesDirectory.toString() + configProfiles.get(optionValue));
             InputStream configXmlStream = PlPgSqlCodeFormatterMain.class.getClassLoader()
