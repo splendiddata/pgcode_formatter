@@ -117,7 +117,7 @@ import java.util.ArrayDeque;
 %xstate ESCAPE_STRING
 %xstate xdolq
 
-spacechar =         [ \t\f]
+spacechar =         [ \t\f\r]
 space =             {spacechar}+
 newline =           {spacechar}*[\r]*\n[\r]*
 commentline =       (\-\-)[^\r\n]*[\r\n]{0,1}
