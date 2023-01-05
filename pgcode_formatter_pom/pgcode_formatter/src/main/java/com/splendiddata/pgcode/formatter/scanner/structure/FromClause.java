@@ -139,7 +139,8 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
                 formatContext);
 
         if (log.isDebugEnabled()) {
-            log.debug("beautify result =\n" + renderResult.beautify());
+            RenderMultiLines copy = renderResult.clone();
+            log.debug("beautify result =\n" + copy.beautify());
         }
         return cacheRenderResult(renderResult, formatContext, parentResult);
     }
