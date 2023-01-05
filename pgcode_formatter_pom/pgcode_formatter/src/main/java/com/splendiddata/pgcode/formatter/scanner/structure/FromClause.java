@@ -197,8 +197,9 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
             if (renderResult.getHeight() <= 1 && renderResult.getWidth() <= maxLength) {
                 // The result fits on a single line
                 if (log.isTraceEnabled()) {
+                    RenderMultiLines copy = renderResult.clone();
                     log.trace(new StringBuilder().append("beautify single line: ").append(this).append("\nconfig: ")
-                            .append(Util.xmlBeanToString(fromConfig)).append("=\n").append(renderResult.beautify()));
+                            .append(Util.xmlBeanToString(fromConfig)).append("=\n").append(copy.beautify()));
                 }
                 return renderResult;
             }
@@ -234,9 +235,10 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
             }
             renderResult.addRenderResult(tableEntryResult, formatContext);
             if (log.isTraceEnabled()) {
+                RenderMultiLines copy = renderResult.clone();
                 log.trace(new StringBuilder().append("beautify subsequent alias positioning: ").append(this)
                         .append("\nconfig: ").append(Util.xmlBeanToString(fromConfig)).append("=\n")
-                        .append(renderResult.beautify()));
+                        .append(copy.beautify()));
             }
             return cacheRenderResult(renderResult, formatContext, parentResult);
         }
@@ -294,9 +296,10 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
                 || aliases.isEmpty()) {
             renderResult.addRenderResult(tableEntryResult, formatContext);
             if (log.isTraceEnabled()) {
+                RenderMultiLines copy = renderResult.clone();
                 log.trace(new StringBuilder().append("beautify no or fixed alias positioning: ").append(this)
                         .append("\nconfig: ").append(Util.xmlBeanToString(fromConfig)).append("=\n")
-                        .append(renderResult.beautify()));
+                        .append(copy.beautify()));
             }
             return cacheRenderResult(renderResult, formatContext, parentResult);
         }
@@ -333,9 +336,10 @@ public class FromClause extends SrcNode implements WantsNewlineBefore {
         renderResult.addRenderResult(tableEntryResult, formatContext);
 
         if (log.isTraceEnabled()) {
+            RenderMultiLines copy = renderResult.clone();
             log.trace(new StringBuilder().append("beautify vertical alias positioning: ").append(this)
                     .append("\nconfig: ").append(Util.xmlBeanToString(fromConfig)).append("=\n")
-                    .append(renderResult.beautify()));
+                    .append(copy.beautify()));
         }
         return cacheRenderResult(renderResult, formatContext, parentResult);
     }

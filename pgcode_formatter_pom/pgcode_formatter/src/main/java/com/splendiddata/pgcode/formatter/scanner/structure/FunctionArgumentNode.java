@@ -322,7 +322,10 @@ public class FunctionArgumentNode extends SrcNode {
             result.addRenderResult(defaultExpressionResult, formatContext);
         }
 
-        log.debug(() -> "render result = \n" + result.beautify());
+        if (log.isDebugEnabled()) {
+            RenderMultiLines copy = result.clone();
+            log.debug(() -> "render result = \n" + copy.beautify());
+        }
         return result;
     }
 }

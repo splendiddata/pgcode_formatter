@@ -299,7 +299,8 @@ public class CaseClauseNode extends SrcNode {
 
         result.removeTrailingSpaces();
         if (log.isTraceEnabled()) {
-            log.trace("beautify with " + Util.xmlBeanToString(context.getCaseConfig()) + " =\n" + result.beautify());
+            RenderMultiLines copy = result.clone();
+            log.trace("beautify with " + Util.xmlBeanToString(context.getCaseConfig()) + " =\n" + copy.beautify());
         }
         return cacheRenderResult(result, formatContext, parentResult);
     }
