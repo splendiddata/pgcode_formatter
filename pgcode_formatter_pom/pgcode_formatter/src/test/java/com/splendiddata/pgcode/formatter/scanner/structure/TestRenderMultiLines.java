@@ -41,7 +41,6 @@ public class TestRenderMultiLines {
     private static FormatContext ctx;
     private static String indentation = "    ";
 
-    private 
     @BeforeAll
     static void setUp() {
         // Just because it is needed when calling some methods

@@ -20,7 +20,7 @@
         <indent value="underFirstArgument" weight="10.0"/>
         <commaBeforeOrAfter>before</commaBeforeOrAfter>
     </functionCallArgumentGrouping>
-    <functionDefinitionArgumentGrouping defaultIndicator="asIs" argumentModePosition="beforeName">
+    <functionDefinitionArgumentGrouping defaultIndicator="asIs">
         <argumentGrouping multilineOpeningParenBeforeArgument="false" multilineClosingParenOnNewLine="false">
             <maxSingleLineLength value="80" weight="10.0"/>
             <maxArgumentsPerGroup value="5" weight="10.0"/>
